@@ -30,3 +30,58 @@ def hello():
 
 if __name__ == '__main__':
    app.run()
+
+
+# connect to azure mongo db
+# get card api call underway
+# get price api call underway
+# finalize fields for card info
+
+# rn thinking of:
+# card name
+# card type
+# card set
+# card rarity
+# card price
+# card image
+# card id (for db purposes)
+# card colors
+# card mana cost
+# card text
+# card flavor text
+# card artist
+# card number (in set)
+# card power/toughness (if applicable)
+# card loyalty (if applicable)
+# card border color
+# card legalities (in various formats)
+# card release date
+# card foil availability
+# card non-foil availability
+# card promo availability
+# card reprint status
+# card variations (if any)
+# card related products (if any)
+# card rulings (if any)
+# card printings (other sets it has been printed in)
+# card booster pack availability
+# card price history (if available)
+# card market price
+# card low price
+# card mid price
+# card high price
+# card trend (price trend over time)
+# card currency (for price information)
+# card language (if applicable)
+# card condition (if applicable)
+# card foil condition (if applicable)
+# card signed status (if applicable)
+# card altered status (if applicable)       
+
+# test some d3.js stuff
+# make a graph of price over time for a card
+# make a graph of card popularity over time (if data available)
+# make a graph of card printings over time
+# make a graph of card legality over time (if data available)
+# make a graph of card variations over time (if data available)
+
