@@ -1,0 +1,29 @@
+{"scryfall": {
+    "name": "Scryfall API", 
+    "description": "An API for Magic: The Gathering card data.", 
+    "url": "https://scryfall.com/docs/api", 
+    "api_url": "https://api.scryfall.com",
+    "example_use":" Search for white cards with a mana value of 1 ",
+    "example_call":" https://api.scryfall.com/cards/search?q=c%3Awhite+mv%3D1 ",
+    "endpoints": ["/cards", "/sets", "/catalog", "/symbology"], 
+    "authentication": "None", 
+    "rate_limit": "10 requests per second", 
+    "version": "2024-06-01"
+},
+    "exchange_rates": {
+        "name": "ExchangeRate-API", 
+        "description": "A simple and reliable API for current and historical foreign exchange rates.",  
+        "url": "https://www.exchangerate-api.com",
+        "api_url": "https://v6.exchangerate-api.com/v6/API_KEY/latest/USD",
+        "example_use":" Get the latest exchange rates for USD ",
+        "example_call":" https://v6.exchangerate-api.com/v6/API_KEY/latest/USD ",
+    },
+    "JustTCG": {
+        "name": "JustTCG API", 
+        "description": "An API for trading card game data, including Magic: The Gathering.", 
+        "url": "https://www.justtcg.com",
+        "api_url": "https://api.justtcg.com/v1/cards?game=magic",
+        "example_use":" Get a list of Magic: The Gathering cards ",
+        "example_call":" https://api.justtcg.com/v1/cards?game=magic ",
+    }
+}
