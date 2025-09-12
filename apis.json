@@ -19,7 +19,7 @@
         "example_use":" Get the latest exchange rates for USD ",
         "example_call":" https://v6.exchangerate-api.com/v6/API_KEY/latest/USD "
     },
-    "JustTCG": {
+    "justtcg": {
         "name": "JustTCG API", 
         "description": "An API for trading card game data, including Magic: The Gathering.", 
         "url": "https://www.justtcg.com",

@@ -1,0 +1,6 @@
+get app published to azure
+connect to mongo
+connect and test core apis
+create pipeline for data
+pull data into d3 table for viz in html
+begin playing with vizs
