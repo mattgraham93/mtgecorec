@@ -130,3 +130,5 @@ dmypy.json
 
 # auth.json --- IGNORE ---
 auth.json
+
+scryfall-default-cards.json

@@ -4,3 +4,4 @@ gunicorn
 # azure-identity
 pymongo
 scrython
+ijson
