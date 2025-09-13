@@ -473,14 +473,15 @@ window.addEventListener('resize', () => {
         .style('display', 'flex')
         .style('flex-wrap', 'wrap')
         .style('justify-content', 'center')
-        .style('gap', '12px')
-        .style('margin-top', '10px');
+        .style('gap', '6px')
+        .style('margin-top', '4px')
+        .style('font-size', '0.95em');
       data.forEach((d, i) => {
         legend.append('span')
           .style('display', 'inline-flex')
           .style('align-items', 'center')
-          .style('gap', '6px')
-          .html(`<span style=\"display:inline-block;width:18px;height:18px;background:${colors[i % colors.length]};border-radius:50%;margin-right:4px;\"></span>${d.type}`);
+          .style('gap', '3px')
+          .html(`<span style=\"display:inline-block;width:13px;height:13px;background:${colors[i % colors.length]};border-radius:50%;margin-right:2px;\"></span>${d.type}`);
       });
     }
     // Initial render
