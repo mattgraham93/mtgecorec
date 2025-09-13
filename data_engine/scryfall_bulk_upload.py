@@ -1,10 +1,23 @@
+# default data from: https://scryfall.com/docs/api/bulk-data
+
+import decimal
+def convert_decimals(obj):
+    """Recursively convert Decimal values to float in dicts/lists."""
+    if isinstance(obj, list):
+        return [convert_decimals(i) for i in obj]
+    elif isinstance(obj, dict):
+        return {k: convert_decimals(v) for k, v in obj.items()}
+    elif isinstance(obj, decimal.Decimal):
+        return float(obj)
+    else:
+        return obj
 import json
 import ijson
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 from cosmos_driver import get_mongo_client, get_collection
 
-BULK_FILE = 'scryfall-default-cards.json'  # Path to your downloaded Scryfall bulk file
+BULK_FILE = 'data_engine/scryfall-default-cards.json'  # Path to your downloaded Scryfall bulk file
 BATCH_SIZE = 500
 DATABASE_NAME = 'cards'
 CONTAINER_NAME = 'mtgecorec'
@@ -20,6 +33,7 @@ def stream_and_upload_cards(json_path, batch_size=500):
         batch = []
         count = 0
         for card in cards:
+            card = convert_decimals(card)
             batch.append(card)
             if len(batch) >= batch_size:
                 try:
