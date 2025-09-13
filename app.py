@@ -33,6 +33,16 @@ def hello():
        return redirect(url_for('index'))
 
 
+# Route for Cards page
+@app.route('/cards')
+def cards():
+   return render_template('cards.html')
+
+# Route for Visualizations page
+@app.route('/visualizations')
+def visualizations():
+   return render_template('visualizations.html')
+
 if __name__ == '__main__':
    app.run()
 

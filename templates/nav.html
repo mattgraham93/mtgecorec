@@ -1,0 +1,44 @@
+<div id="side-nav-header" class="side-nav-header d-flex align-items-center justify-content-start">
+  <button id="side-nav-toggle-btn" class="side-nav-toggle btn btn-link" aria-label="Toggle navigation" onclick="toggleSideNav()">
+    <span class="custom-hamburger">
+      <span class="bar1"></span>
+      <span class="bar2"></span>
+      <span class="bar3"></span>
+    </span>
+  </button>
+  <a class="navbar-brand fw-bold mb-0 ms-2" href="/" id="side-nav-home-link">Home</a>
+</div>
+<div id="side-nav" class="side-nav open">
+  <nav class="side-nav-links mt-3" id="side-nav-links">
+    <a class="nav-link nav-panel-link mb-2 {% if request.path == '/' %}active{% endif %}" href="/">Home</a>
+    <a class="nav-link nav-panel-link mb-2 {% if 'cards' in request.path %}active{% endif %}" href="/cards">Cards</a>
+    <a class="nav-link nav-panel-link mb-2 {% if 'visualizations' in request.path %}active{% endif %}" href="/visualizations">Visualizations</a>
+  </nav>
+</div>
+<script>
+function toggleSideNav() {
+  const nav = document.getElementById('side-nav');
+  const headerHome = document.getElementById('side-nav-home-link');
+  if (nav.classList.contains('open')) {
+    nav.classList.remove('open');
+    nav.classList.add('closed');
+    document.body.classList.remove('side-nav-open');
+    document.body.classList.add('side-nav-closed');
+    if (headerHome) headerHome.style.display = '';
+  } else {
+    nav.classList.remove('closed');
+    nav.classList.add('open');
+    document.body.classList.remove('side-nav-closed');
+    document.body.classList.add('side-nav-open');
+    if (headerHome) headerHome.style.display = 'none';
+  }
+}
+// Start with menu closed and Home visible in header
+window.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('side-nav').classList.add('closed');
+  document.body.classList.add('side-nav-closed');
+  // Show Home in header when menu is closed
+  const headerHome = document.getElementById('side-nav-home-link');
+  if (headerHome) headerHome.style.display = '';
+});
+</script>

@@ -1,0 +1,318 @@
+/* Hamburger icon visibility and sizing */
+.custom-hamburger {
+  display: inline-block;
+  width: 1.6rem;
+  height: 1.6rem;
+  position: relative;
+  vertical-align: middle;
+}
+.custom-hamburger .bar1,
+.custom-hamburger .bar2,
+.custom-hamburger .bar3 {
+  display: block;
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 0.22rem;
+  background: #fff !important;
+  border-radius: 2px;
+  transition: 0.2s;
+}
+.custom-hamburger .bar1 { top: 0.25rem; }
+.custom-hamburger .bar2 { top: 0.69rem; }
+.custom-hamburger .bar3 { top: 1.13rem; }
+#side-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 260px;
+  max-width: 80vw;
+  height: calc(100vh - 4.2rem);
+  left: 0;
+  top: 4.2rem;
+  position: fixed;
+  z-index: 2100;
+  pointer-events: none;
+}
+
+#side-nav.open {
+  transform: translateX(0);
+  transition: transform 0.38s cubic-bezier(.77,0,.18,1);
+  pointer-events: auto;
+}
+#side-nav.closed {
+  transform: translateX(-100%);
+  transition: transform 0.38s cubic-bezier(.77,0,.18,1);
+  pointer-events: none;
+}
+
+.side-nav-links {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1 1 auto;
+  width: 100%;
+  padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+  box-sizing: border-box;
+  opacity: 1;
+  transition: opacity 0.25s;
+}
+#side-nav.closed .side-nav-links {
+  opacity: 0;
+  pointer-events: none;
+}
+#side-nav.open .side-nav-links {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.side-nav-links .nav-link,
+.side-nav-links .nav-panel-link {
+  display: block;
+  width: 100%;
+  margin: 0.3rem 0;
+  padding: 0.7rem 1.2rem;
+  border-radius: 0 1.2rem 1.2rem 0;
+  text-align: left;
+  position: static;
+}
+/* Sidebar nav styles */
+/* Sidebar nav styles */
+#side-nav {
+  background: #2D1B4A;
+  z-index: 2100;
+}
+
+body.side-nav-open {
+  padding-left: 260px;
+  transition: padding-left 0.35s cubic-bezier(.77,0,.18,1);
+}
+body.side-nav-closed {
+  padding-left: 0;
+  transition: padding-left 0.35s cubic-bezier(.77,0,.18,1);
+}
+
+@media (max-width: 900px) {
+  body.side-nav-open {
+    padding-left: 0 !important;
+  }
+}
+
+
+/* Restore intended nav link styles */
+.side-nav-links .nav-link,
+.side-nav-links .nav-panel-link {
+  color: #fff !important;
+  font-weight: 600;
+  font-size: 1em;
+  background: #2D1B4A;
+  border: none;
+  position: relative;
+}
+
+
+/* Highlight active nav link */
+.side-nav-links .nav-link.active,
+.side-nav-links .nav-panel-link.active {
+  background: #9D4EDD !important;
+  color: #fff !important;
+  font-weight: bold;
+  border-left: 5px solid #B983FF;
+  box-shadow: 0 0 8px #9D4EDD55;
+}
+
+/* Other existing styles... */
+/* ... */
+/* Sidebar nav styles */
+#side-nav-header {
+  background: linear-gradient(180deg, #2D1B4A 90%, rgba(45,27,74,0.85) 100%);
+  box-shadow: 2px 0 16px #9D4EDD55;
+  padding: 1.2rem 1.2rem 0.5rem 1.2rem;
+  display: flex;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 4.2rem;
+  flex-direction: row;
+  justify-content: flex-start;
+  z-index: 2200;
+  overflow: visible;
+  border-radius: 0;
+}
+#side-nav-header::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2.5rem;
+  background: linear-gradient(180deg, #2D1B4A 60%, rgba(45,27,74,0));
+  z-index: 1;
+}
+#side-nav-toggle-btn {
+  margin-right: 0.7rem;
+  margin-top: 0.2rem;
+  z-index: 2;
+  color: #fff !important;
+  background: none;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 0.7rem;
+  padding: 0.2rem 0.7rem 0.2rem 0.7rem;
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+}
+.custom-hamburger .bar1,
+.custom-hamburger .bar2,
+.custom-hamburger .bar3 {
+  background: #fff !important;
+}
+#side-nav-home-link {
+  color: #fff;
+  display: block;
+  margin-left: 0.2rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  background: none;
+  box-shadow: none;
+  border-radius: 0.7rem;
+  padding: 0.1rem 0.7rem;
+  z-index: 2;
+}
+/*
+  Neon/Deep Purple Dark Theme for MTGEC
+  Accessible, high-contrast, and modern
+*/
+body {
+  background: #18122B;
+  color: #F3F0FF;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+}
+
+.navbar, .navbar-dark.bg-primary {
+  background: linear-gradient(90deg, #7F1FFF 0%, #18122B 100%);
+  border-bottom: 2px solid #9D4EDD;
+}
+
+.navbar .navbar-brand, .navbar .nav-link, .navbar .nav-link.active {
+  color: #F3F0FF !important;
+  font-weight: 600;
+}
+
+.navbar .nav-link.active {
+  background: #9D4EDD;
+  border-radius: 0.5rem;
+  color: #fff !important;
+}
+
+main, .container, .container-fluid {
+  background: transparent;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}
+@media (max-width: 900px) {
+  main, .container, .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.table, .table-bordered, .table-striped, .table-dark {
+  background: #2D1B4A;
+  color: #F3F0FF;
+}
+
+.table thead {
+  background: #7F1FFF;
+  color: #fff;
+}
+
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background: #3C2466;
+}
+
+.table-striped tbody tr:nth-of-type(even) {
+  background: #4B357A;
+}
+
+.table-striped tbody tr,
+.table-striped tbody td,
+.table-striped tbody th {
+  color: #F3F0FF !important;
+}
+
+.table-bordered th, .table-bordered td {
+  border-color: #9D4EDD;
+}
+
+.pagination .page-link {
+  background: #2D1B4A;
+  color: #F3F0FF;
+  border: 1px solid #9D4EDD;
+}
+
+.pagination .page-item.active .page-link {
+  background: #9D4EDD;
+  color: #fff;
+  border-color: #7F1FFF;
+}
+
+.btn-primary, .btn-primary:focus, .btn-primary:active {
+  background: #7F1FFF;
+  border-color: #9D4EDD;
+  color: #fff;
+  box-shadow: 0 0 8px #9D4EDD;
+}
+
+.btn-primary:hover {
+  background: #9D4EDD;
+  border-color: #7F1FFF;
+}
+
+.modal-content {
+  background: #2D1B4A;
+  color: #F3F0FF;
+  border: 2px solid #9D4EDD;
+}
+
+.alert-info {
+  background: #3C2466;
+  color: #F3F0FF;
+  border-color: #9D4EDD;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #B983FF;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  background: #2D1B4A;
+}
+::-webkit-scrollbar-thumb {
+  background: #9D4EDD;
+  border-radius: 5px;
+}
+
+a, a:visited {
+  color: #B983FF;
+}
+a:hover {
+  color: #fff;
+  text-shadow: 0 0 4px #9D4EDD;
+}
+
+/* D3 Bar Chart Accessibility */
+#d3-bar-chart svg {
+  background: #2D1B4A;
+  border-radius: 1rem;
+  box-shadow: 0 0 16px #7F1FFF44;
+}
+
+.bar {
+  filter: drop-shadow(0 0 4px #9D4EDD88);
+}
