@@ -68,7 +68,7 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${card.name || ''}</td>
-          <td>${card.type || ''}</td>
+          <td>${card.type_line ? card.type_line.split(' — ')[0] : ''}</td>
           <td>${card.set || ''}</td>
           <td>${card.rarity || ''}</td>
           <td>${card.price !== undefined ? '$' + card.price.toLocaleString() : ''}</td>

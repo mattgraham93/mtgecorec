@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const typeCounts = {};
       let total = 0;
       for (const card of cards) {
-        let t = (card.type || '').split('—')[0].trim(); // handle "Creature — Human"
+        let t = (card.type_line || '').split(' — ')[0].trim(); // handle "Creature — Human"
         if (!t) t = 'Other';
         typeCounts[t] = (typeCounts[t] || 0) + 1;
         total++;

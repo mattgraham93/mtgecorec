@@ -21,18 +21,6 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-@app.route('/hello', methods=['POST'])
-def hello():
-   name = request.form.get('name')
-
-   if name:
-       print('Request for hello page received with name=%s' % name)
-       return render_template('hello.html', name = name)
-   else:
-       print('Request for hello page received with no name or blank name -- redirecting')
-       return redirect(url_for('index'))
-
-
 # Route for Cards page
 @app.route('/cards')
 def cards():
@@ -42,11 +30,6 @@ def cards():
 @app.route('/visualizations')
 def visualizations():
    return render_template('visualizations.html')
-
-if __name__ == '__main__':
-   app.run()
-
-
 
 # API endpoint to get paginated card data as JSON
 @app.route('/api/cards')
@@ -79,9 +62,9 @@ def api_cards():
       'page_size': page_size
    })
 
+if __name__ == '__main__':
+   app.run()
 
-# connect to azure mongo db
-# get card api call underway
 # get price api call underway
 # finalize fields for card info
 
