@@ -37,16 +37,37 @@ if __name__ == '__main__':
    app.run()
 
 
-# API endpoint to get card data as JSON
+
+# API endpoint to get paginated card data as JSON
 @app.route('/api/cards')
 def api_cards():
+   print('--- /api/cards called ---')
    client = cosmos_driver.get_mongo_client()
    database_name = 'cards'
    container_name = 'mtgecorec'
    collection = cosmos_driver.get_collection(client, container_name, database_name)
-   # Get all cards, limit fields for brevity
-   cards = list(collection.find({}, {'_id': 0}))
-   return jsonify(cards)
+   # Get pagination params
+   try:
+      page = int(request.args.get('page', 1))
+      page_size = int(request.args.get('page_size', 25))
+      if page < 1: page = 1
+      if page_size < 1: page_size = 25
+   except Exception as e:
+      print(f'Error parsing pagination params: {e}')
+      page, page_size = 1, 25
+   skip = (page - 1) * page_size
+   print(f'Pagination params: page={page}, page_size={page_size}, skip={skip}')
+   total = collection.count_documents({})
+   print(f'Total cards in collection: {total}')
+   cursor = collection.find({}, {'_id': 0}).skip(skip).limit(page_size)
+   cards = list(cursor)
+   print(f'Returning {len(cards)} cards for this page')
+   return jsonify({
+      'cards': cards,
+      'total': total,
+      'page': page,
+      'page_size': page_size
+   })
 
 
 # connect to azure mongo db

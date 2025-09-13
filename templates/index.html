@@ -39,17 +39,35 @@
     </div>
    </main>
    <script>
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 25;
     let cards = [];
     let currentPage = 1;
+    let totalCards = 0;
 
-    function renderTable(page) {
+    async function fetchCards(page = 1) {
+      try {
+        const res = await fetch(`/api/cards?page=${page}&page_size=${PAGE_SIZE}`);
+        const data = await res.json();
+        console.log('Fetched card data:', data);
+        cards = data.cards;
+        totalCards = data.total;
+        currentPage = data.page;
+        renderTable();
+        renderPagination();
+      } catch (err) {
+        console.error('Failed to fetch cards:', err);
+      }
+    }
+
+    function renderTable() {
       const tbody = document.querySelector('#cards-table tbody');
+      if (!tbody) {
+        console.error('Table body element #cards-table tbody not found!');
+        return;
+      }
       tbody.innerHTML = '';
-      const start = (page - 1) * PAGE_SIZE;
-      const end = start + PAGE_SIZE;
-      const pageCards = cards.slice(start, end);
-      for (const card of pageCards) {
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${card.name || ''}</td>
@@ -57,12 +75,92 @@
           <td>${card.set || ''}</td>
           <td>${card.rarity || ''}</td>
           <td>${card.price !== undefined ? '$' + card.price.toLocaleString() : ''}</td>
-          <td>${card.image_url ? `<img src="${card.image_url}" alt="${card.name}" style="max-width:60px;max-height:80px;cursor:pointer;" onclick="showCardModal(${start + pageCards.indexOf(card)})">` : ''}</td>
+          <td>${card.image_url ? `<img src="${card.image_url}" alt="${card.name}" style="max-width:60px;max-height:80px;cursor:pointer;" onclick="showCardModal(${i})">` : ''}</td>
         </tr>`;
         tbody.appendChild(row);
       }
-
     }
+
+    function renderPagination() {
+      const pageCount = Math.max(1, Math.ceil(totalCards / PAGE_SIZE));
+      const pagination = document.getElementById('pagination');
+      if (!pagination) {
+        console.error('Pagination element #pagination not found!');
+        return;
+      }
+      pagination.innerHTML = '';
+
+      // Left arrow
+      const liPrev = document.createElement('li');
+      liPrev.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+      const aPrev = document.createElement('a');
+      aPrev.className = 'page-link';
+      aPrev.href = '#';
+      aPrev.innerHTML = '&laquo;';
+      aPrev.onclick = (e) => {
+        e.preventDefault();
+        if (currentPage > 1) fetchCards(currentPage - 1);
+      };
+      liPrev.appendChild(aPrev);
+      pagination.appendChild(liPrev);
+
+      // Page input
+      const liInput = document.createElement('li');
+      liInput.className = 'page-item';
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = 1;
+      input.max = pageCount;
+      input.value = currentPage;
+      input.style = 'width: 60px; text-align: center; display: inline-block;';
+      input.className = 'form-control';
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          let val = parseInt(input.value);
+          if (!isNaN(val) && val >= 1 && val <= pageCount) {
+            fetchCards(val);
+          } else {
+            input.value = currentPage;
+          }
+        }
+      };
+      input.onblur = () => {
+        let val = parseInt(input.value);
+        if (!isNaN(val) && val >= 1 && val <= pageCount && val !== currentPage) {
+          fetchCards(val);
+        } else {
+          input.value = currentPage;
+        }
+      };
+      liInput.appendChild(input);
+      pagination.appendChild(liInput);
+
+      // Total pages display
+      const liTotal = document.createElement('li');
+      liTotal.className = 'page-item disabled';
+      const spanTotal = document.createElement('span');
+      spanTotal.className = 'page-link';
+      spanTotal.style = 'background: none; border: none; color: #333;';
+      spanTotal.textContent = ` / ${pageCount}`;
+      liTotal.appendChild(spanTotal);
+      pagination.appendChild(liTotal);
+
+      // Right arrow
+      const liNext = document.createElement('li');
+      liNext.className = 'page-item' + (currentPage === pageCount ? ' disabled' : '');
+      const aNext = document.createElement('a');
+      aNext.className = 'page-link';
+      aNext.href = '#';
+      aNext.innerHTML = '&raquo;';
+      aNext.onclick = (e) => {
+        e.preventDefault();
+        if (currentPage < pageCount) fetchCards(currentPage + 1);
+      };
+      liNext.appendChild(aNext);
+      pagination.appendChild(liNext);
+    }
+
+  window.onload = () => fetchCards(1);
    </script>
 
    <!-- Modal for card image popout -->
@@ -98,41 +196,6 @@
       var modal = new bootstrap.Modal(document.getElementById('cardModal'));
       modal.show();
     }
-
-    function renderPagination() {
-      const pageCount = Math.ceil(cards.length / PAGE_SIZE);
-      const pagination = document.getElementById('pagination');
-      pagination.innerHTML = '';
-      for (let i = 1; i <= pageCount; i++) {
-        const li = document.createElement('li');
-        li.className = 'page-item' + (i === currentPage ? ' active' : '');
-        const a = document.createElement('a');
-        a.className = 'page-link';
-        a.href = '#';
-        a.textContent = i;
-        a.onclick = (e) => {
-          e.preventDefault();
-          currentPage = i;
-          renderTable(currentPage);
-          renderPagination();
-        };
-        li.appendChild(a);
-        pagination.appendChild(li);
-      }
-    }
-
-    async function fetchCards() {
-      try {
-        const res = await fetch('/api/cards');
-        cards = await res.json();
-        renderTable(currentPage);
-        renderPagination();
-      } catch (err) {
-        console.error('Failed to fetch cards:', err);
-      }
-    }
-
-    window.onload = fetchCards;
    </script>
    </body>
 </html>
