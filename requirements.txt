@@ -3,3 +3,4 @@ gunicorn
 # azure-cosmos
 # azure-identity
 pymongo
+scrython

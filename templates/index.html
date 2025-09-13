@@ -6,25 +6,97 @@
 </head>
 <html>
    <body>
-     <main>
-        <div class="px-4 py-3 my-2 text-center">
-            <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/azure-icon.svg') }}" alt="Azure Logo" width="192" height="192"/>
-            <!-- <img  src="/docs/5.1/assets/brand/bootstrap-logo.svg" alt="" width="72" height="57"> -->
-            <h1 class="display-6 fw-bold text-primary">Welcome to Azure</h1>            
-          </div>
-        <form method="post" action="{{url_for('hello')}}">
-            <div class="col-md-6 mx-auto text-center">
-                <label for="name" class="form-label fw-bold fs-5">Could you please tell me your name?</label>
+   <main>
+    <div class="px-4 py-3 my-2 text-center">
+      <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/azure-icon.svg') }}" alt="Azure Logo" width="192" height="192"/>
+      <h1 class="display-6 fw-bold text-primary">Welcome to Azure</h1>
+    </div>
 
-                <!-- <p class="lead mb-2">Could you please tell me your name?</p> -->
-                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center align-items-center my-1">
-                    <input type="text" class="form-control" id="name" name="name" style="max-width: 256px;">
-                  </div>            
-                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-2">
-                  <button type="submit" class="btn btn-primary btn-lg px-4 gap-3">Say Hello</button>
-                </div>            
-            </div>
-        </form>
-     </main>      
+    <div class="container my-4">
+      <h2 class="mb-3">Card Database</h2>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered" id="cards-table">
+          <thead class="table-dark">
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Set</th>
+              <th>Rarity</th>
+              <th>Price</th>
+              <th>Image</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Data will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+      <nav>
+        <ul class="pagination justify-content-center" id="pagination">
+          <!-- Pagination will be inserted here -->
+        </ul>
+      </nav>
+    </div>
+   </main>
+   <script>
+    const PAGE_SIZE = 10;
+    let cards = [];
+    let currentPage = 1;
+
+    function renderTable(page) {
+      const tbody = document.querySelector('#cards-table tbody');
+      tbody.innerHTML = '';
+      const start = (page - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      const pageCards = cards.slice(start, end);
+      for (const card of pageCards) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${card.name || ''}</td>
+          <td>${card.type || ''}</td>
+          <td>${card.set || ''}</td>
+          <td>${card.rarity || ''}</td>
+          <td>${card.price !== undefined ? '$' + card.price.toLocaleString() : ''}</td>
+          <td>${card.image_url ? `<img src="${card.image_url}" alt="${card.name}" style="max-width:60px;max-height:80px;">` : ''}</td>
+        `;
+        tbody.appendChild(row);
+      }
+    }
+
+    function renderPagination() {
+      const pageCount = Math.ceil(cards.length / PAGE_SIZE);
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      for (let i = 1; i <= pageCount; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (i === currentPage ? ' active' : '');
+        const a = document.createElement('a');
+        a.className = 'page-link';
+        a.href = '#';
+        a.textContent = i;
+        a.onclick = (e) => {
+          e.preventDefault();
+          currentPage = i;
+          renderTable(currentPage);
+          renderPagination();
+        };
+        li.appendChild(a);
+        pagination.appendChild(li);
+      }
+    }
+
+    async function fetchCards() {
+      try {
+        const res = await fetch('/api/cards');
+        cards = await res.json();
+        renderTable(currentPage);
+        renderPagination();
+      } catch (err) {
+        console.error('Failed to fetch cards:', err);
+      }
+    }
+
+    window.onload = fetchCards;
+   </script>
    </body>
 </html>

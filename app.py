@@ -1,7 +1,12 @@
 import os
 
 from flask import (Flask, redirect, render_template, request,
-                   send_from_directory, url_for)
+                   send_from_directory, url_for, jsonify)
+
+# Import Cosmos DB driver
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'data_engine'))
+from data_engine import cosmos_driver
 
 app = Flask(__name__)
 
@@ -30,6 +35,18 @@ def hello():
 
 if __name__ == '__main__':
    app.run()
+
+
+# API endpoint to get card data as JSON
+@app.route('/api/cards')
+def api_cards():
+   client = cosmos_driver.get_mongo_client()
+   database_name = 'cards'
+   container_name = 'mtgecorec'
+   collection = cosmos_driver.get_collection(client, container_name, database_name)
+   # Get all cards, limit fields for brevity
+   cards = list(collection.find({}, {'_id': 0}))
+   return jsonify(cards)
 
 
 # connect to azure mongo db
