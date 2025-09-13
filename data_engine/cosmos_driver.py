@@ -6,30 +6,10 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
 def get_mongo_client():
-    try:
-        auth_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'auth.json')
-        with open(auth_path) as f:
-            auth = json.load(f)
-    except FileNotFoundError:
-        print("auth.json file not found. Please create it with your MongoDB credentials.")
-        sys.exit(1)
-    except json.JSONDecodeError:
-        print("Error decoding auth.json. Please ensure it is valid JSON.")
-        sys.exit(1)
-    
-    cosmos = auth.get('cosmos_db', {})
-    connection_string = cosmos.get('connection_string')
-
-    if not connection_string:
-        print("MongoDB 'connection_string' must be set in auth.json under 'cosmos_db'.")
-        sys.exit(1)
-
-    try:
-        client = MongoClient(connection_string)
-        return client
-    except PyMongoError as e:
-        print(f"Failed to create MongoClient: {e}")
-        sys.exit(1)
+    conn_str = os.environ.get('COSMOS_CONNECTION_STRING')
+    if not conn_str:
+        raise RuntimeError("Missing Cosmos DB connection string in environment variables.")
+    return MongoClient(conn_str)
 
 def add_card(collection, card_data):
     try:
@@ -48,8 +28,8 @@ def get_collection(client, db_name, collection_name):
 
 if __name__ == '__main__':
     client = get_mongo_client()
-    database_name = 'cards'
-    container_name = 'mtgecorec'
+    database_name = os.environ.get('COSMOS_DB_NAME', 'cards')
+    container_name = os.environ.get('COSMOS_CONTAINER_NAME', 'mtgecorec')
 
     db = client[container_name]
     collection = db[database_name]
