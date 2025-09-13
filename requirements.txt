@@ -1,2 +1,5 @@
 Flask==3.1.0
 gunicorn
+# azure-cosmos
+# azure-identity
+pymongo
