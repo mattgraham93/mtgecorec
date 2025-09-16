@@ -3,6 +3,8 @@
 document.addEventListener('DOMContentLoaded', function() {
   let allCards = [];
   let currentColorFilter = null;
+  let currentTypeFilter = null;
+  let filterMode = 'color'; // 'color' or 'type'
 
   // Reset button and dropdown logic
   const resetBtn = document.getElementById('reset-filters-btn');
@@ -78,20 +80,20 @@ document.addEventListener('DOMContentLoaded', function() {
       // Hide tooltip if present
       d3.selectAll('.d3-tooltip').style('opacity', 0);
       // Always show reset button, but disable if no filter
+      const anyFilter = (filterMode === 'color' && currentColorFilter) || (filterMode === 'type' && currentTypeFilter);
       if (resetBtn) {
-        resetBtn.disabled = !currentColorFilter;
-        resetBtn.classList.toggle('btn-secondary', !currentColorFilter);
-        resetBtn.classList.toggle('btn-primary', !!currentColorFilter);
+        resetBtn.disabled = !anyFilter;
+        resetBtn.classList.toggle('btn-secondary', !anyFilter);
+        resetBtn.classList.toggle('btn-primary', !!anyFilter);
       }
       // Keep dropdown in sync
       if (colorDropdown) {
-        colorDropdown.value = currentColorFilter || '';
+        colorDropdown.value = filterMode === 'color' ? (currentColorFilter || '') : '';
       }
-      // Filter cards and bar chart data if needed
       let filteredCards = allCards;
       let chartData;
-      if (currentColorFilter) {
-        // Show only the selected color and 'Many' in the bar chart
+      if (filterMode === 'color' && currentColorFilter) {
+        // Filter by color
         filteredCards = allCards.filter(card => {
           const key = getColorKey(card);
           if (key === currentColorFilter) return true;
@@ -107,6 +109,20 @@ document.addEventListener('DOMContentLoaded', function() {
             count: colorCounts[color] || 0,
             fill: colorMap[color]
           }));
+      } else if (filterMode === 'type' && currentTypeFilter) {
+        // Filter by type
+        filteredCards = allCards.filter(card => {
+          let t = (card.type_line || '').split(' — ')[0].trim();
+          if (!t) t = 'Other';
+          return t === currentTypeFilter;
+        });
+        // Bar chart: show color breakdown for this type
+        const colorCounts = getColorCounts(filteredCards);
+        chartData = colorOrder.map(color => ({
+          color,
+          count: colorCounts[color] || 0,
+          fill: colorMap[color]
+        }));
       } else {
         // No filter: show all
         const colorCounts = getColorCounts(allCards);
@@ -117,7 +133,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }));
       }
       renderBarChart(chartData);
-      renderDonutChart(filteredCards);
+      if (filteredCards.length > 0) {
+        renderDonutChart(filteredCards);
+      } else {
+        // Show a friendly message and keep layout
+        d3.select('#d3-donut-chart').html('<div class="alert alert-info" style="margin:2rem 0;text-align:center;">No cards found for this filter.</div>');
+        d3.select('#d3-legend').selectAll('*').remove();
+      }
     }
     // Format numbers as XX.Xk for thousands
     function formatCount(n) {
@@ -367,7 +389,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     }
-    function renderDonutChart(cards) {
+  function renderDonutChart(cards) {
+      // Map type to color for legend and donut click filtering
+      const typeToColor = {
+        'White': 'White', 'Blue': 'Blue', 'Black': 'Black', 'Red': 'Red', 'Green': 'Green',
+        'Colorless': 'Colorless', 'Many': 'Many', 'Other': 'Other'
+      };
       // Group by type
       const typeCounts = {};
       let total = 0;
@@ -429,6 +456,7 @@ window.addEventListener('resize', () => {
         .style('pointer-events', 'none')
         .style('font-size', '1rem')
         .style('opacity', 0);
+      // ...existing code...
       svg.selectAll('path')
         .data(pie(data))
         .enter()
@@ -437,6 +465,7 @@ window.addEventListener('resize', () => {
         .attr('fill', (d, i) => colors[i % colors.length])
         .attr('stroke', '#18122B')
         .attr('stroke-width', 2)
+        .attr('cursor', 'pointer')
         .on('mouseover', function(event, d) {
           d3.select(this).attr('opacity', 1).attr('stroke', '#B983FF');
           tooltip.transition().duration(100).style('opacity', 1);
@@ -452,6 +481,19 @@ window.addEventListener('resize', () => {
           d3.select(this).attr('opacity', 0.95).attr('stroke', '#18122B');
           tooltip.transition().duration(200).style('opacity', 0);
           setTimeout(() => { tooltip.remove(); }, 220);
+        })
+        .on('click', function(event, d) {
+          // Filter by type
+          if (filterMode === 'type' && currentTypeFilter === d.data.type) {
+            currentTypeFilter = null;
+            filterMode = 'color';
+          } else {
+            currentTypeFilter = d.data.type;
+            filterMode = 'type';
+            currentColorFilter = null;
+          }
+          if (colorDropdown) colorDropdown.value = '';
+          updateCharts();
         });
       // Center label: total
       svg.append('text')
@@ -467,25 +509,43 @@ window.addEventListener('resize', () => {
         .attr('font-size', '1.1rem')
         .attr('fill', '#F3F0FF')
         .text('Total Cards');
-      // Legend
-      const legend = d3.select('#d3-donut-chart').append('div')
-        .attr('class', 'd3-legend')
-        .style('display', 'flex')
-        .style('flex-wrap', 'wrap')
-        .style('justify-content', 'center')
-        .style('gap', '6px')
-        .style('margin-top', '4px')
-        .style('font-size', '0.95em');
+      // Legend: single column, clickable
+      const legendContainer = d3.select('#d3-legend');
+      legendContainer.selectAll('*').remove();
+      // ...existing code...
       data.forEach((d, i) => {
-        legend.append('span')
-          .style('display', 'inline-flex')
-          .style('align-items', 'center')
-          .style('gap', '3px')
-          .html(`<span style=\"display:inline-block;width:13px;height:13px;background:${colors[i % colors.length]};border-radius:50%;margin-right:2px;\"></span>${d.type}`);
+        // Legend filters by color
+        const legendColor = typeToColor[d.type] || d.type;
+        legendContainer.append('div')
+          .attr('class', 'd3-legend-item' + (filterMode === 'color' && currentColorFilter === legendColor ? ' active' : ''))
+          .style('color', filterMode === 'color' && currentColorFilter === legendColor ? '#fff' : '#F3F0FF')
+          .on('click', function() {
+            if (filterMode === 'color' && currentColorFilter === legendColor) {
+              currentColorFilter = null;
+            } else {
+              currentColorFilter = legendColor;
+              filterMode = 'color';
+              currentTypeFilter = null;
+            }
+            if (colorDropdown) colorDropdown.value = currentColorFilter || '';
+            updateCharts();
+          })
+          .html(`<span style=\"display:inline-block;width:11px;height:11px;background:${colors[i % colors.length]};border-radius:50%;margin-right:4px;\"></span>${d.type}`);
       });
     }
     // Initial render
     updateCharts();
+
+    // Fix reset button to always clear filter and restore all charts
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() {
+        currentColorFilter = null;
+        currentTypeFilter = null;
+        filterMode = 'color';
+        if (colorDropdown) colorDropdown.value = '';
+        if (typeof updateCharts === 'function') updateCharts();
+      });
+    }
   }
 
   // Loading spinner logic
