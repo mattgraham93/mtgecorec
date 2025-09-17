@@ -52,7 +52,20 @@ def api_cards():
    print(f'Pagination params: page={page}, page_size={page_size}, skip={skip}')
    total = collection.count_documents({})
    print(f'Total cards in collection: {total}')
-   cursor = collection.find({}, {'_id': 0}).skip(skip).limit(page_size)
+   # Only return needed fields for each card
+   projection = {
+      '_id': 0,
+      'name': 1,
+      'type_line': 1,
+      'set': 1,
+      'rarity': 1,
+      'price': 1,
+      'image_uris': 1,
+      'colors': 1,
+      'mana_cost': 1,
+      'artist': 1
+   }
+   cursor = collection.find({}, projection).skip(skip).limit(page_size)
    cards = list(cursor)
    print(f'Returning {len(cards)} cards for this page')
    return jsonify({
