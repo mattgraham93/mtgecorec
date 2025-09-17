@@ -4,19 +4,13 @@ document.addEventListener('DOMContentLoaded', function() {
   let allCards = [];
   let currentColorFilter = null;
   let currentTypeFilter = null;
-  let filterMode = 'color'; // 'color' or 'type'
+  const PAGE_SIZE = 10; // Show 10 cards per page in table
+  let currentPage = 1;
+  let totalFilteredCards = 0;
 
   // Reset button and dropdown logic
   const resetBtn = document.getElementById('reset-filters-btn');
   const colorDropdown = document.getElementById('color-filter-dropdown');
-
-  // Make dropdown actually filter the charts
-  if (colorDropdown) {
-    colorDropdown.addEventListener('change', function() {
-      currentColorFilter = colorDropdown.value || null;
-      if (typeof updateCharts === 'function') updateCharts();
-    });
-  }
 
   // Show loading spinner
   showLoading();
@@ -80,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Hide tooltip if present
       d3.selectAll('.d3-tooltip').style('opacity', 0);
       // Always show reset button, but disable if no filter
-      const anyFilter = (filterMode === 'color' && currentColorFilter) || (filterMode === 'type' && currentTypeFilter);
+      const anyFilter = currentColorFilter || currentTypeFilter;
       if (resetBtn) {
         resetBtn.disabled = !anyFilter;
         resetBtn.classList.toggle('btn-secondary', !anyFilter);
@@ -88,50 +82,52 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       // Keep dropdown in sync
       if (colorDropdown) {
-        colorDropdown.value = filterMode === 'color' ? (currentColorFilter || '') : '';
+        colorDropdown.value = currentColorFilter || '';
       }
       let filteredCards = allCards;
-      let chartData;
-      if (filterMode === 'color' && currentColorFilter) {
-        // Filter by color
-        filteredCards = allCards.filter(card => {
-          const key = getColorKey(card);
-          if (key === currentColorFilter) return true;
-          if (key === 'Many' && Array.isArray(card.colors) && card.colors.map(c => colorNorm[String(c).toLowerCase()] || c).includes(currentColorFilter)) return true;
-          return false;
-        });
-        // Bar chart: only selected color and 'Many'
-        const colorCounts = getColorCounts(filteredCards);
-        chartData = colorOrder
-          .filter(color => color === currentColorFilter || color === 'Many')
-          .map(color => ({
-            color,
-            count: colorCounts[color] || 0,
-            fill: colorMap[color]
-          }));
-      } else if (filterMode === 'type' && currentTypeFilter) {
-        // Filter by type
-        filteredCards = allCards.filter(card => {
+      if (currentColorFilter) {
+        if (currentColorFilter === 'Many') {
+          // Include all cards with multiple colors
+          filteredCards = allCards.filter(card => {
+            const key = getColorKey(card);
+            return key === 'Many';
+          });
+        } else {
+          // Include cards with the selected color (single or multi)
+          filteredCards = allCards.filter(card => {
+            const key = getColorKey(card);
+            if (key === currentColorFilter) return true;
+            if (key === 'Many' && Array.isArray(card.colors) && card.colors.map(c => colorNorm[String(c).toLowerCase()] || c).includes(currentColorFilter)) return true;
+            return false;
+          });
+        }
+      }
+      if (currentTypeFilter) {
+        filteredCards = filteredCards.filter(card => {
           let t = (card.type_line || '').split(' — ')[0].trim();
           if (!t) t = 'Other';
           return t === currentTypeFilter;
         });
-        // Bar chart: show color breakdown for this type
-        const colorCounts = getColorCounts(filteredCards);
-        chartData = colorOrder.map(color => ({
-          color,
-          count: colorCounts[color] || 0,
-          fill: colorMap[color]
-        }));
-      } else {
-        // No filter: show all
-        const colorCounts = getColorCounts(allCards);
-        chartData = colorOrder.map(color => ({
-          color,
-          count: colorCounts[color] || 0,
-          fill: colorMap[color]
-        }));
       }
+      // Update active filters display
+      let filterText = '';
+      if (currentColorFilter) filterText += `<span class="badge bg-primary me-2">${currentColorFilter}</span>`;
+      if (currentTypeFilter) filterText += `<span class="badge bg-secondary">${currentTypeFilter}</span>`;
+      d3.select('#active-filters').html(filterText || '<span class="text-muted">No active filters</span>');
+      
+      // Save filters to localStorage for cross-page filtering
+      const filters = {
+        color: currentColorFilter,
+        type: currentTypeFilter
+      };
+      localStorage.setItem('mtgCardFilters', JSON.stringify(filters));
+      // Bar chart: show color breakdown of filtered cards
+      const colorCounts = getColorCounts(filteredCards);
+      const chartData = colorOrder.map(color => ({
+        color,
+        count: colorCounts[color] || 0,
+        fill: colorMap[color]
+      }));
       renderBarChart(chartData);
       if (filteredCards.length > 0) {
         renderDonutChart(filteredCards);
@@ -140,11 +136,197 @@ document.addEventListener('DOMContentLoaded', function() {
         d3.select('#d3-donut-chart').html('<div class="alert alert-info" style="margin:2rem 0;text-align:center;">No cards found for this filter.</div>');
         d3.select('#d3-legend').selectAll('*').remove();
       }
+      
+      // Update filtered cards table
+      fetchFilteredCards(1); // Reset to first page when filters change
     }
     // Format numbers as XX.Xk for thousands
     function formatCount(n) {
       if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
       return n;
+    }
+    
+    // Fetch and display filtered cards in table
+    async function fetchFilteredCards(page = 1) {
+      try {
+        // Show loading state
+        const tbody = document.querySelector('#filtered-cards-table tbody');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+        }
+        
+        // Build query string with current filters and pagination
+        let queryParams = `page=${page}&page_size=${PAGE_SIZE}`;
+        if (currentColorFilter) {
+          queryParams += `&color=${encodeURIComponent(currentColorFilter)}`;
+        }
+        if (currentTypeFilter) {
+          queryParams += `&type=${encodeURIComponent(currentTypeFilter)}`;
+        }
+        
+        const res = await fetch(`/api/cards?${queryParams}`);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        
+        // Update count badge and pagination variables
+        totalFilteredCards = data.total;
+        currentPage = data.page;
+        const countBadge = document.getElementById('filtered-count');
+        if (countBadge) {
+          countBadge.textContent = totalFilteredCards.toLocaleString();
+        }
+        
+        renderFilteredCardsTable(data.cards);
+        renderPagination();
+      } catch (err) {
+        console.error('Failed to fetch filtered cards:', err);
+        // Show error in table
+        const tbody = document.querySelector('#filtered-cards-table tbody');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load cards</td></tr>';
+        }
+      }
+    }
+    
+    // Render filtered cards table
+    function renderFilteredCardsTable(cards) {
+      const tbody = document.querySelector('#filtered-cards-table tbody');
+      if (!tbody) return;
+      
+      if (!cards || cards.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No cards match the current filters</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = '';
+      
+      // Color mapping for display
+      const colorNames = {
+        'W': 'White', 'U': 'Blue', 'B': 'Black', 'R': 'Red', 'G': 'Green'
+      };
+      
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        
+        // Format colors
+        let colorDisplay = 'Colorless';
+        if (card.colors && card.colors.length > 0) {
+          if (card.colors.length === 1) {
+            colorDisplay = colorNames[card.colors[0]] || card.colors[0];
+          } else {
+            colorDisplay = 'Many';
+          }
+        }
+        
+        // Format type (take first part)
+        const typeDisplay = card.type_line ? card.type_line.split(' — ')[0] : '';
+        
+        // Format price
+        const priceDisplay = card.price !== undefined ? '$' + card.price.toLocaleString() : '';
+        
+        // Format image
+        const imageDisplay = card.image_uris && card.image_uris.normal 
+          ? `<img src="${card.image_uris.normal}" alt="${card.name}" style="max-width:40px;max-height:50px;cursor:pointer;" onclick="showCardModal('${card.name}', '${card.image_uris.normal}', '${card.type_line || ''}', '${card.set || ''}', '${card.rarity || ''}', '${priceDisplay}')">`
+          : '';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="fw-bold">${card.name || ''}</td>
+          <td>${typeDisplay}</td>
+          <td>${colorDisplay}</td>
+          <td>${card.rarity || ''}</td>
+          <td>${priceDisplay}</td>
+          <td class="text-center">${imageDisplay}</td>
+        `;
+        tbody.appendChild(row);
+      }
+    }
+    
+    // Render pagination controls
+    function renderPagination() {
+      const pageCount = Math.max(1, Math.ceil(totalFilteredCards / PAGE_SIZE));
+      const pagination = document.getElementById('filtered-pagination');
+      if (!pagination) return;
+      
+      pagination.innerHTML = '';
+      
+      if (totalFilteredCards <= PAGE_SIZE) {
+        // Don't show pagination if all cards fit on one page
+        return;
+      }
+
+      // Left arrow
+      const liPrev = document.createElement('li');
+      liPrev.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+      const aPrev = document.createElement('a');
+      aPrev.className = 'page-link';
+      aPrev.href = '#';
+      aPrev.innerHTML = '&laquo;';
+      aPrev.onclick = (e) => {
+        e.preventDefault();
+        if (currentPage > 1) fetchFilteredCards(currentPage - 1);
+      };
+      liPrev.appendChild(aPrev);
+      pagination.appendChild(liPrev);
+
+      // Page input
+      const liInput = document.createElement('li');
+      liInput.className = 'page-item';
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = 1;
+      input.max = pageCount;
+      input.value = currentPage;
+      input.style = 'width: 60px; text-align: center; display: inline-block;';
+      input.className = 'form-control';
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          let val = parseInt(input.value);
+          if (!isNaN(val) && val >= 1 && val <= pageCount) {
+            fetchFilteredCards(val);
+          } else {
+            input.value = currentPage;
+          }
+        }
+      };
+      input.onblur = () => {
+        let val = parseInt(input.value);
+        if (!isNaN(val) && val >= 1 && val <= pageCount && val !== currentPage) {
+          fetchFilteredCards(val);
+        } else {
+          input.value = currentPage;
+        }
+      };
+      liInput.appendChild(input);
+      pagination.appendChild(liInput);
+
+      // Total pages display
+      const liTotal = document.createElement('li');
+      liTotal.className = 'page-item disabled';
+      const spanTotal = document.createElement('span');
+      spanTotal.className = 'page-link';
+      spanTotal.style = 'background: none; border: none; color: #333;';
+      spanTotal.textContent = ` / ${pageCount}`;
+      liTotal.appendChild(spanTotal);
+      pagination.appendChild(liTotal);
+
+      // Right arrow
+      const liNext = document.createElement('li');
+      liNext.className = 'page-item' + (currentPage === pageCount ? ' disabled' : '');
+      const aNext = document.createElement('a');
+      aNext.className = 'page-link';
+      aNext.href = '#';
+      aNext.innerHTML = '&raquo;';
+      aNext.onclick = (e) => {
+        e.preventDefault();
+        if (currentPage < pageCount) fetchFilteredCards(currentPage + 1);
+      };
+      liNext.appendChild(aNext);
+      pagination.appendChild(liNext);
     }
     function renderBarChart(data) {
       // Responsive width: 58% of .viz-row or 100% on mobile
@@ -236,7 +418,6 @@ document.addEventListener('DOMContentLoaded', function() {
           .on('click', function(event, d) {
             if (currentColorFilter === d.color) {
               currentColorFilter = null;
-              tooltip.transition().duration(200).style('opacity', 0);
             } else {
               currentColorFilter = d.color;
             }
@@ -269,16 +450,6 @@ document.addEventListener('DOMContentLoaded', function() {
           .attr('font-size', '14px')
           .attr('fill', '#F3F0FF')
           .text('Color');
-        // Add filter label if active
-        if (currentColorFilter) {
-          svg.append('text')
-            .attr('x', width - 20)
-            .attr('y', margin.top - 10)
-            .attr('text-anchor', 'end')
-            .attr('font-size', '1rem')
-            .attr('fill', '#F3F0FF')
-            .text(`Filtered: ${currentColorFilter}`);
-        }
       } else {
         // Vertical bar chart for desktop
         const margin = {top: 30, right: 20, bottom: 50, left: 60};
@@ -344,7 +515,6 @@ document.addEventListener('DOMContentLoaded', function() {
           .on('click', function(event, d) {
             if (currentColorFilter === d.color) {
               currentColorFilter = null;
-              tooltip.transition().duration(200).style('opacity', 0);
             } else {
               currentColorFilter = d.color;
             }
@@ -377,24 +547,9 @@ document.addEventListener('DOMContentLoaded', function() {
           .attr('font-size', '14px')
           .attr('fill', '#F3F0FF')
           .text('Color');
-        // Add filter label if active
-        if (currentColorFilter) {
-          svg.append('text')
-            .attr('x', width - 20)
-            .attr('y', margin.top - 10)
-            .attr('text-anchor', 'end')
-            .attr('font-size', '1rem')
-            .attr('fill', '#F3F0FF')
-            .text(`Filtered: ${currentColorFilter}`);
-        }
       }
     }
   function renderDonutChart(cards) {
-      // Map type to color for legend and donut click filtering
-      const typeToColor = {
-        'White': 'White', 'Blue': 'Blue', 'Black': 'Black', 'Red': 'Red', 'Green': 'Green',
-        'Colorless': 'Colorless', 'Many': 'Many', 'Other': 'Other'
-      };
       // Group by type
       const typeCounts = {};
       let total = 0;
@@ -483,16 +638,11 @@ window.addEventListener('resize', () => {
           setTimeout(() => { tooltip.remove(); }, 220);
         })
         .on('click', function(event, d) {
-          // Filter by type
-          if (filterMode === 'type' && currentTypeFilter === d.data.type) {
+          if (currentTypeFilter === d.data.type) {
             currentTypeFilter = null;
-            filterMode = 'color';
           } else {
             currentTypeFilter = d.data.type;
-            filterMode = 'type';
-            currentColorFilter = null;
           }
-          if (colorDropdown) colorDropdown.value = '';
           updateCharts();
         });
       // Center label: total
@@ -514,20 +664,15 @@ window.addEventListener('resize', () => {
       legendContainer.selectAll('*').remove();
       // ...existing code...
       data.forEach((d, i) => {
-        // Legend filters by color
-        const legendColor = typeToColor[d.type] || d.type;
         legendContainer.append('div')
-          .attr('class', 'd3-legend-item' + (filterMode === 'color' && currentColorFilter === legendColor ? ' active' : ''))
-          .style('color', filterMode === 'color' && currentColorFilter === legendColor ? '#fff' : '#F3F0FF')
+          .attr('class', 'd3-legend-item' + (currentTypeFilter === d.type ? ' active' : ''))
+          .style('color', currentTypeFilter === d.type ? '#fff' : '#F3F0FF')
           .on('click', function() {
-            if (filterMode === 'color' && currentColorFilter === legendColor) {
-              currentColorFilter = null;
-            } else {
-              currentColorFilter = legendColor;
-              filterMode = 'color';
+            if (currentTypeFilter === d.type) {
               currentTypeFilter = null;
+            } else {
+              currentTypeFilter = d.type;
             }
-            if (colorDropdown) colorDropdown.value = currentColorFilter || '';
             updateCharts();
           })
           .html(`<span style=\"display:inline-block;width:11px;height:11px;background:${colors[i % colors.length]};border-radius:50%;margin-right:4px;\"></span>${d.type}`);
@@ -536,13 +681,32 @@ window.addEventListener('resize', () => {
     // Initial render
     updateCharts();
 
+    // Make dropdown actually filter the charts
+    if (colorDropdown) {
+      colorDropdown.addEventListener('change', function() {
+        currentColorFilter = colorDropdown.value || null;
+        // Save filters to localStorage
+        const filters = {
+          color: currentColorFilter,
+          type: currentTypeFilter
+        };
+        localStorage.setItem('mtgCardFilters', JSON.stringify(filters));
+        updateCharts();
+      });
+    }
+
     // Fix reset button to always clear filter and restore all charts
     if (resetBtn) {
       resetBtn.addEventListener('click', function() {
         currentColorFilter = null;
         currentTypeFilter = null;
-        filterMode = 'color';
         if (colorDropdown) colorDropdown.value = '';
+        // Save cleared filters to localStorage
+        const filters = {
+          color: null,
+          type: null
+        };
+        localStorage.setItem('mtgCardFilters', JSON.stringify(filters));
         if (typeof updateCharts === 'function') updateCharts();
       });
     }

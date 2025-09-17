@@ -39,6 +39,7 @@ def api_cards():
    database_name = 'cards'
    container_name = 'mtgecorec'
    collection = cosmos_driver.get_collection(client, container_name, database_name)
+   
    # Get pagination params
    try:
       page = int(request.args.get('page', 1))
@@ -48,10 +49,51 @@ def api_cards():
    except Exception as e:
       print(f'Error parsing pagination params: {e}')
       page, page_size = 1, 25
+   
+   # Get filter params
+   color_filter = request.args.get('color')
+   type_filter = request.args.get('type')
+   
    skip = (page - 1) * page_size
    print(f'Pagination params: page={page}, page_size={page_size}, skip={skip}')
-   total = collection.count_documents({})
-   print(f'Total cards in collection: {total}')
+   print(f'Filter params: color={color_filter}, type={type_filter}')
+   
+   # Build MongoDB query based on filters
+   query = {}
+   if color_filter:
+      if color_filter == 'Many':
+         # Cards with multiple colors - size > 1
+         query['$and'] = [
+            {'colors': {'$exists': True}},
+            {'colors': {'$ne': []}},  # Not empty
+            {'colors': {'$not': {'$size': 1}}}  # Not exactly 1 element
+         ]
+      elif color_filter in ['White', 'Blue', 'Black', 'Red', 'Green']:
+         # Single color cards OR multi-color cards that include this color
+         color_map = {
+            'White': 'W', 'Blue': 'U', 'Black': 'B', 'Red': 'R', 'Green': 'G'
+         }
+         color_code = color_map[color_filter]
+         query['colors'] = {'$in': [color_code]}  # Contains this color (works for both single and multi)
+      elif color_filter == 'Colorless':
+         query['$or'] = [
+            {'colors': {'$exists': False}},
+            {'colors': []},
+            {'colors': None}
+         ]
+   
+   if type_filter:
+      # Filter by card type (first part before " — ")
+      if type_filter == 'Other':
+         query['type_line'] = {'$not': {'$regex': '^(Creature|Instant|Sorcery|Enchantment|Artifact|Planeswalker|Land)'}}
+      else:
+         query['type_line'] = {'$regex': f'^{type_filter}'}
+   
+   print(f'MongoDB query: {query}')
+   
+   total = collection.count_documents(query)
+   print(f'Total cards matching filters: {total}')
+   
    # Only return needed fields for each card
    projection = {
       '_id': 0,
@@ -65,7 +107,7 @@ def api_cards():
       'mana_cost': 1,
       'artist': 1
    }
-   cursor = collection.find({}, projection).skip(skip).limit(page_size)
+   cursor = collection.find(query, projection).skip(skip).limit(page_size)
    cards = list(cursor)
    print(f'Returning {len(cards)} cards for this page')
    return jsonify({
