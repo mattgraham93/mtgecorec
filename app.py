@@ -31,6 +31,11 @@ def cards():
 def visualizations():
    return render_template('visualizations.html')
 
+# Route for Card Analysis Notebook
+@app.route('/analysis')
+def analysis():
+   return send_from_directory(os.path.join(app.root_path, 'static'), 'card_explore.html', mimetype='text/html')
+
 # API endpoint to get paginated card data as JSON
 @app.route('/api/cards')
 def api_cards():
@@ -116,6 +121,20 @@ def api_cards():
       'page': page,
       'page_size': page_size
    })
+
+# Route to regenerate notebook HTML
+@app.route('/regenerate-analysis')
+def regenerate_analysis():
+    try:
+        import subprocess
+        result = subprocess.run(['python', 'scripts/convert_notebook.py'],
+                              capture_output=True, text=True, cwd=app.root_path)
+        if result.returncode == 0:
+            return "Analysis page regenerated successfully!", 200
+        else:
+            return f"Error regenerating analysis: {result.stderr}", 500
+    except Exception as e:
+        return f"Error regenerating analysis: {str(e)}", 500
 
 if __name__ == '__main__':
    app.run()

@@ -12,3 +12,5 @@ numpy
 scikit-learn
 matplotlib
 seaborn 
+nbconvert
+jupyter
