@@ -6,3 +6,9 @@ pymongo
 scrython
 ijson
 python-dotenv
+
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn 
