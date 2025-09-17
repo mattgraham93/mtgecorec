@@ -55,6 +55,7 @@ def insert_exchange_rates(base_currency):
 	}
 	result = collection.insert_one(doc)
 	print(f"Inserted exchange rates for {base_currency} with _id: {result.inserted_id}")
+
 def pull_latest_exchange_rates(base_currency):
 	"""
 	Pull and print the most recently inserted exchange rates document from Cosmos DB.

@@ -20,6 +20,10 @@ def add_card(collection, card_data):
         print(f"Failed to add card: {e}")
         sys.exit(1)
 
+def upsert_card(collection, card_data):
+    # Upsert by 'id' (replace if exists, insert if not)
+    collection.replace_one({'id': card_data['id']}, card_data, upsert=True)
+
 def get_collection(client, db_name, collection_name):
     """
     Returns a collection object for the given database and collection name.
