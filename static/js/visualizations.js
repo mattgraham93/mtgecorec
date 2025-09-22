@@ -4,9 +4,13 @@ document.addEventListener('DOMContentLoaded', function() {
   let allCards = [];
   let currentColorFilter = null;
   let currentTypeFilter = null;
+  let previousColorFilter = null;
   const PAGE_SIZE = 10; // Show 10 cards per page in table
   let currentPage = 1;
   let totalFilteredCards = 0;
+  let drillDownData = null; // For drilling into "Other" types
+  let currentSortBy = 'name'; // Default sort column
+  let currentSortOrder = 'asc'; // 'asc' or 'desc'
 
   // Reset button and dropdown logic
   const resetBtn = document.getElementById('reset-filters-btn');
@@ -15,19 +19,33 @@ document.addEventListener('DOMContentLoaded', function() {
   // Show loading spinner
   showLoading();
 
-  fetch('/api/cards?page=1&page_size=10000')
+  // Fetch summary stats for all cards (not just the first page)
+  fetch('/api/cards/summary')
     .then(res => res.json())
-    .then(data => {
-      allCards = data.cards || [];
+    .then(summary => {
+      window.cardSummary = summary;
       hideLoading();
       setupViz();
     })
     .catch(() => {
       hideLoading();
-      d3.select('#d3-bar-chart').html('<div class="alert alert-danger">Failed to load card data.</div>');
+      d3.select('#d3-bar-chart').html('<div class="alert alert-danger">Failed to load card summary.</div>');
     });
 
   function setupViz() {
+    // Load saved filters and sorting from localStorage
+    const savedFilters = localStorage.getItem('mtgCardFilters');
+    if (savedFilters) {
+      try {
+        const filters = JSON.parse(savedFilters);
+        currentColorFilter = filters.color || null;
+        currentTypeFilter = filters.type || null;
+        currentSortBy = filters.sortBy || 'name';
+        currentSortOrder = filters.sortOrder || 'asc';
+      } catch (e) {
+        console.error('Error loading saved filters:', e);
+      }
+    }
     // Map abbreviations and normalize color names
     const colorNorm = {
       'w': 'White', 'white': 'White',
@@ -48,7 +66,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       return colorKey;
     }
+    // Use backend summary for color counts if available (always prefer backend data)
     function getColorCounts(cards) {
+      if (window.cardSummary && window.cardSummary.color_counts) {
+        return window.cardSummary.color_counts;
+      }
+      // fallback to local calculation
       const colorCounts = {};
       for (const card of cards) {
         const colorKey = getColorKey(card);
@@ -67,10 +90,10 @@ document.addEventListener('DOMContentLoaded', function() {
       'Many': 'rgb(235, 159, 130)',  // peach
       'Other': 'rgb(196, 211, 202)'  // light green (fallback for other)
     };
-    function updateCharts() {
-      // Remove old SVGs and legends
-      d3.select('#d3-bar-chart').selectAll('*').remove();
-      d3.select('#d3-donut-chart').selectAll('*').remove();
+    async function updateCharts() {
+      // Show loading spinners
+      d3.select('#d3-bar-chart').html('<div class="d-flex justify-content-center align-items-center" style="height:320px;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+      d3.select('#d3-donut-chart').html('<div class="d-flex justify-content-center align-items-center" style="height:320px;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
       // Hide tooltip if present
       d3.selectAll('.d3-tooltip').style('opacity', 0);
       // Always show reset button, but disable if no filter
@@ -84,16 +107,40 @@ document.addEventListener('DOMContentLoaded', function() {
       if (colorDropdown) {
         colorDropdown.value = currentColorFilter || '';
       }
+
+      // Fetch filtered summary
+      let queryParams = '';
+      if (currentColorFilter) {
+        if (currentColorFilter === 'Many' && previousColorFilter && previousColorFilter !== 'Many') {
+          queryParams += `color=${encodeURIComponent(previousColorFilter)}&many=true&`;
+        } else {
+          queryParams += `color=${encodeURIComponent(currentColorFilter)}&`;
+        }
+      }
+      if (currentTypeFilter) {
+        queryParams += `type=${encodeURIComponent(currentTypeFilter)}&`;
+      }
+      if (queryParams) queryParams = queryParams.slice(0, -1); // remove trailing &
+      try {
+        const res = await fetch(`/api/cards/summary?${queryParams}`);
+        if (res.ok) {
+          const summary = await res.json();
+          window.cardSummary = summary;
+        } else {
+          console.error('Failed to fetch summary');
+        }
+      } catch (err) {
+        console.error('Error fetching summary:', err);
+      }
+
       let filteredCards = allCards;
       if (currentColorFilter) {
         if (currentColorFilter === 'Many') {
-          // Include all cards with multiple colors
           filteredCards = allCards.filter(card => {
             const key = getColorKey(card);
             return key === 'Many';
           });
         } else {
-          // Include cards with the selected color (single or multi)
           filteredCards = allCards.filter(card => {
             const key = getColorKey(card);
             if (key === currentColorFilter) return true;
@@ -114,13 +161,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (currentColorFilter) filterText += `<span class="badge bg-primary me-2">${currentColorFilter}</span>`;
       if (currentTypeFilter) filterText += `<span class="badge bg-secondary">${currentTypeFilter}</span>`;
       d3.select('#active-filters').html(filterText || '<span class="text-muted">No active filters</span>');
-      
+
       // Save filters to localStorage for cross-page filtering
       const filters = {
         color: currentColorFilter,
-        type: currentTypeFilter
+        type: currentTypeFilter,
+        sortBy: currentSortBy,
+        sortOrder: currentSortOrder
       };
       localStorage.setItem('mtgCardFilters', JSON.stringify(filters));
+
       // Bar chart: show color breakdown of filtered cards
       const colorCounts = getColorCounts(filteredCards);
       const chartData = colorOrder.map(color => ({
@@ -129,14 +179,10 @@ document.addEventListener('DOMContentLoaded', function() {
         fill: colorMap[color]
       }));
       renderBarChart(chartData);
-      if (filteredCards.length > 0) {
-        renderDonutChart(filteredCards);
-      } else {
-        // Show a friendly message and keep layout
-        d3.select('#d3-donut-chart').html('<div class="alert alert-info" style="margin:2rem 0;text-align:center;">No cards found for this filter.</div>');
-        d3.select('#d3-legend').selectAll('*').remove();
-      }
-      
+
+      // Always render donut chart using backend summary
+      renderDonutChart([]);
+
       // Update filtered cards table
       fetchFilteredCards(1); // Reset to first page when filters change
     }
@@ -156,9 +202,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Build query string with current filters and pagination
-        let queryParams = `page=${page}&page_size=${PAGE_SIZE}`;
+        let queryParams = `page=${page}&page_size=${PAGE_SIZE}&sort_by=${currentSortBy}&sort_order=${currentSortOrder}`;
         if (currentColorFilter) {
-          queryParams += `&color=${encodeURIComponent(currentColorFilter)}`;
+          if (currentColorFilter === 'Many' && previousColorFilter && previousColorFilter !== 'Many') {
+            queryParams += `&color=${encodeURIComponent(previousColorFilter)}&many=true`;
+          } else {
+            queryParams += `&color=${encodeURIComponent(currentColorFilter)}`;
+          }
         }
         if (currentTypeFilter) {
           queryParams += `&type=${encodeURIComponent(currentTypeFilter)}`;
@@ -230,17 +280,32 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Format image
         const imageDisplay = card.image_uris && card.image_uris.normal 
-          ? `<img src="${card.image_uris.normal}" alt="${card.name}" style="max-width:40px;max-height:50px;cursor:pointer;" onclick="showCardModal('${card.name}', '${card.image_uris.normal}', '${card.type_line || ''}', '${card.set || ''}', '${card.rarity || ''}', '${priceDisplay}')">`
+          ? `<img src="${card.image_uris.normal}" alt="${card.name}" style="max-width:50px;max-height:60px;border-radius:6px;border:2px solid rgba(185,131,255,0.2);box-shadow:0 2px 4px rgba(0,0,0,0.1);cursor:pointer;transition:all 0.2s ease;" onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 8px rgba(185,131,255,0.3)';" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" onclick="showCardModal('${card.name}', '${card.image_uris.normal}', '${card.type_line || ''}', '${card.set || ''}', '${card.rarity || ''}', '${priceDisplay}')">`
           : '';
         
         const row = document.createElement('tr');
+        row.style.cssText = `
+          transition: all 0.2s ease;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+        `;
+        row.onmouseover = function() {
+          this.style.backgroundColor = 'rgba(185, 131, 255, 0.05)';
+          this.style.transform = 'translateY(-1px)';
+          this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+        };
+        row.onmouseout = function() {
+          this.style.backgroundColor = 'transparent';
+          this.style.transform = 'translateY(0)';
+          this.style.boxShadow = 'none';
+        };
+        
         row.innerHTML = `
-          <td class="fw-bold">${card.name || ''}</td>
-          <td>${typeDisplay}</td>
-          <td>${colorDisplay}</td>
-          <td>${card.rarity || ''}</td>
-          <td>${priceDisplay}</td>
-          <td class="text-center">${imageDisplay}</td>
+          <td style="padding:12px 16px;font-weight:600;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${card.name || ''}</td>
+          <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${typeDisplay}</td>
+          <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${colorDisplay}</td>
+          <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${card.rarity || ''}</td>
+          <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${priceDisplay}</td>
+          <td style="padding:12px 16px;text-align:center;">${imageDisplay}</td>
         `;
         tbody.appendChild(row);
       }
@@ -329,8 +394,10 @@ document.addEventListener('DOMContentLoaded', function() {
       pagination.appendChild(liNext);
     }
     function renderBarChart(data) {
+      // Clear any existing content
+      d3.select('#d3-bar-chart').html('');
+      
       // Responsive width: 58% of .viz-row or 100% on mobile
-      // Use container width for responsive sizing
       const container = document.getElementById('d3-bar-chart');
       let width = container ? container.offsetWidth : 600;
       let height = 350;
@@ -340,17 +407,21 @@ document.addEventListener('DOMContentLoaded', function() {
         height = 320;
       }
 
-      // Tooltip div
+      // Tooltip div with modern styling
       const tooltip = d3.select('body').append('div')
         .attr('class', 'd3-tooltip')
         .style('position', 'absolute')
-        .style('background', '#2D1B4A')
+        .style('background', 'linear-gradient(135deg, #2D1B4A 0%, #1a0d2e 100%)')
         .style('color', '#F3F0FF')
-        .style('padding', '8px 14px')
-        .style('border-radius', '8px')
-        .style('box-shadow', '0 0 8px #9D4EDD')
+        .style('padding', '12px 16px')
+        .style('border-radius', '12px')
+        .style('box-shadow', '0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(185,131,255,0.2)')
         .style('pointer-events', 'none')
-        .style('font-size', '1rem')
+        .style('font-size', '0.9rem')
+        .style('font-weight', '500')
+        .style('font-family', 'system-ui, -apple-system, sans-serif')
+        .style('backdrop-filter', 'blur(10px)')
+        .style('border', '1px solid rgba(185,131,255,0.3)')
         .style('opacity', 0);
 
       if (isMobile) {
@@ -396,29 +467,45 @@ document.addEventListener('DOMContentLoaded', function() {
           .attr('height', y.bandwidth())
           .attr('width', d => x(d.count) - margin.left)
           .attr('fill', d => d.fill)
-          .attr('stroke', '#fff')
-          .attr('stroke-width', d => d.color === 'White' ? 3 : 1.5)
-          .attr('opacity', 0.95)
+          .attr('stroke', '#ffffff')
+          .attr('stroke-width', 2)
+          .attr('rx', 4)
+          .attr('opacity', 0.9)
+          .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))')
           .style('cursor', 'pointer')
           .on('mouseover', function(event, d) {
-            d3.select(this).attr('opacity', 1).attr('stroke', '#B983FF');
-            tooltip.transition().duration(100).style('opacity', 1);
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr('opacity', 1)
+              .attr('stroke', '#B983FF')
+              .attr('stroke-width', 3)
+              .style('filter', 'drop-shadow(0 3px 6px rgba(185, 131, 255, 0.2))');
+            tooltip.transition().duration(200).style('opacity', 1);
             tooltip.html(`<strong>${d.color}</strong><br>Count: ${formatCount(d.count)}`)
-              .style('left', (event.pageX + 12) + 'px')
-              .style('top', (event.pageY - 28) + 'px');
+              .style('left', (event.pageX + 15) + 'px')
+              .style('top', (event.pageY - 35) + 'px');
           })
           .on('mousemove', function(event) {
-            tooltip.style('left', (event.pageX + 12) + 'px')
-                   .style('top', (event.pageY - 28) + 'px');
+            tooltip.style('left', (event.pageX + 15) + 'px')
+                   .style('top', (event.pageY - 35) + 'px');
           })
           .on('mouseout', function() {
-            d3.select(this).attr('opacity', 0.95).attr('stroke', '#fff');
-            tooltip.transition().duration(200).style('opacity', 0);
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr('opacity', 0.9)
+              .attr('stroke', '#ffffff')
+              .attr('stroke-width', 2)
+              .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))');
+            tooltip.transition().duration(300).style('opacity', 0);
           })
           .on('click', function(event, d) {
             if (currentColorFilter === d.color) {
               currentColorFilter = null;
+              previousColorFilter = null;
             } else {
+              previousColorFilter = currentColorFilter;
               currentColorFilter = d.color;
             }
             if (colorDropdown) colorDropdown.value = currentColorFilter || '';
@@ -493,43 +580,51 @@ document.addEventListener('DOMContentLoaded', function() {
           .attr('width', x.bandwidth())
           .attr('height', d => y(0) - y(d.count))
           .attr('fill', d => d.fill)
-          .attr('stroke', '#fff')
-          .attr('stroke-width', d => d.color === 'White' ? 3 : 1.5)
-          .attr('opacity', 0.95)
+          .attr('stroke', '#ffffff')
+          .attr('stroke-width', 2)
+          .attr('rx', 4)
+          .attr('opacity', 0.9)
+          .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))')
           .style('cursor', 'pointer')
           .on('mouseover', function(event, d) {
-            d3.select(this).attr('opacity', 1).attr('stroke', '#B983FF');
-            tooltip.transition().duration(100).style('opacity', 1);
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr('opacity', 1)
+              .attr('stroke', '#B983FF')
+              .attr('stroke-width', 3)
+              .style('filter', 'drop-shadow(0 3px 6px rgba(185, 131, 255, 0.2))');
+            tooltip.transition().duration(200).style('opacity', 1);
             tooltip.html(`<strong>${d.color}</strong><br>Count: ${formatCount(d.count)}`)
-              .style('left', (event.pageX + 12) + 'px')
-              .style('top', (event.pageY - 28) + 'px');
+              .style('left', (event.pageX + 15) + 'px')
+              .style('top', (event.pageY - 35) + 'px');
           })
           .on('mousemove', function(event) {
-            tooltip.style('left', (event.pageX + 12) + 'px')
-                   .style('top', (event.pageY - 28) + 'px');
+            tooltip.style('left', (event.pageX + 15) + 'px')
+                   .style('top', (event.pageY - 35) + 'px');
           })
           .on('mouseout', function() {
-            d3.select(this).attr('opacity', 0.95).attr('stroke', '#fff');
-            tooltip.transition().duration(200).style('opacity', 0);
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr('opacity', 0.9)
+              .attr('stroke', '#ffffff')
+              .attr('stroke-width', 2)
+              .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))');
+            tooltip.transition().duration(300).style('opacity', 0);
           })
           .on('click', function(event, d) {
             if (currentColorFilter === d.color) {
               currentColorFilter = null;
+              previousColorFilter = null;
             } else {
+              previousColorFilter = currentColorFilter;
               currentColorFilter = d.color;
             }
             if (colorDropdown) colorDropdown.value = currentColorFilter || '';
             updateCharts();
           });
 
-        svg.append('text')
-          .attr('x', width / 2)
-          .attr('y', margin.top - 10)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '20px')
-          .attr('font-weight', 'bold')
-          .attr('fill', '#B983FF')
-          .text('Card Count by Color');
         // Y axis label
         svg.append('text')
           .attr('transform', 'rotate(-90)')
@@ -550,23 +645,61 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   function renderDonutChart(cards) {
-      // Group by type
-      const typeCounts = {};
+      // Clear any existing content
+      d3.select('#d3-donut-chart').html('');
+      
+      // Always use backend summary for type counts if available
+      let typeCounts = {};
       let total = 0;
-      for (const card of cards) {
-        let t = (card.type_line || '').split(' — ')[0].trim(); // handle "Creature — Human"
-        if (!t) t = 'Other';
-        typeCounts[t] = (typeCounts[t] || 0) + 1;
-        total++;
+      if (window.cardSummary && window.cardSummary.type_counts) {
+        typeCounts = window.cardSummary.type_counts;
+        total = window.cardSummary.total || 0;
+      } else {
+        for (const card of cards) {
+          let t = (card.type_line || '').split(' — ')[0].trim();
+          if (!t) t = 'Other';
+          typeCounts[t] = (typeCounts[t] || 0) + 1;
+          total++;
+        }
       }
-      // Sort by count desc, show top 8, rest as "Other"
-      let entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
-      if (entries.length > 8) {
-        const top = entries.slice(0, 7);
-        const otherCount = entries.slice(7).reduce((sum, e) => sum + e[1], 0);
-        entries = [...top, ['Other', otherCount]];
+      
+      let data;
+      let remainingEntries = [];
+      
+      if (drillDownData) {
+        // Use drill-down data
+        data = drillDownData;
+      } else {
+        // Prepare data with priority types always included
+        let entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+        const priorityTypes = ['Legendary Creature', 'Planeswalker'];
+        let topEntries = [];
+        remainingEntries = [...entries];
+        
+        // First, add priority types if they exist
+        for (let pt of priorityTypes) {
+          let idx = remainingEntries.findIndex(e => e[0] === pt);
+          if (idx !== -1) {
+            topEntries.push(remainingEntries.splice(idx, 1)[0]);
+          }
+        }
+        
+        // Then add top remaining to fill to 8
+        let numToAdd = 8 - topEntries.length;
+        topEntries = topEntries.concat(remainingEntries.splice(0, numToAdd));
+        
+        // Sort topEntries by count desc
+        topEntries.sort((a, b) => b[1] - a[1]);
+        
+        // Calculate other count and add Other if needed
+        let otherCount = remainingEntries.reduce((sum, e) => sum + e[1], 0);
+        if (otherCount > 0) {
+          topEntries.push(['Other', otherCount]);
+        }
+        
+        data = topEntries.map(([type, count]) => ({type, count}));
       }
-      const data = entries.map(([type, count]) => ({type, count}));
+      
       const colors = d3.schemeTableau10.concat(['#B983FF', '#9D4EDD', '#18122B']);
       // Use container width for responsive sizing
       const container = document.getElementById('d3-donut-chart');
@@ -585,17 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .append('g')
         .attr('transform', `translate(${width / 2},${height / 2})`);
-// Redraw charts on window resize for true responsiveness
-window.addEventListener('resize', () => {
-  // Only rerender if on visualizations page
-  if (document.getElementById('d3-bar-chart') && document.getElementById('d3-donut-chart')) {
-    d3.select('#d3-bar-chart').selectAll('*').remove();
-    d3.select('#d3-donut-chart').selectAll('*').remove();
-    // Re-run setupViz if available
-    if (typeof setupViz === 'function') setupViz();
-    // If not, reload page as fallback
-  }
-});
+
       const pie = d3.pie().value(d => d.count);
       const arc = d3.arc().innerRadius(radius * 0.55).outerRadius(radius);
       // Remove any existing donut tooltips before creating a new one
@@ -603,83 +726,274 @@ window.addEventListener('resize', () => {
       const tooltip = d3.select('body').append('div')
         .attr('class', 'd3-tooltip donut')
         .style('position', 'absolute')
-        .style('background', '#2D1B4A')
+        .style('background', 'linear-gradient(135deg, #2D1B4A 0%, #1a0d2e 100%)')
         .style('color', '#F3F0FF')
-        .style('padding', '8px 14px')
-        .style('border-radius', '8px')
-        .style('box-shadow', '0 0 8px #9D4EDD')
+        .style('padding', '12px 16px')
+        .style('border-radius', '12px')
+        .style('box-shadow', '0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(185,131,255,0.2)')
         .style('pointer-events', 'none')
-        .style('font-size', '1rem')
+        .style('font-size', '0.9rem')
+        .style('font-weight', '500')
+        .style('font-family', 'system-ui, -apple-system, sans-serif')
+        .style('backdrop-filter', 'blur(10px)')
+        .style('border', '1px solid rgba(185,131,255,0.3)')
         .style('opacity', 0);
-      // ...existing code...
+
       svg.selectAll('path')
         .data(pie(data))
         .enter()
         .append('path')
         .attr('d', arc)
         .attr('fill', (d, i) => colors[i % colors.length])
-        .attr('stroke', '#18122B')
-        .attr('stroke-width', 2)
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', 3)
+        .attr('opacity', 0.9)
+        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
         .attr('cursor', 'pointer')
+        .attr('tabindex', 0)
+        .attr('role', 'button')
+        .attr('aria-label', (d) => `${d.data.type}: ${formatCount(d.data.count)} cards`)
         .on('mouseover', function(event, d) {
-          d3.select(this).attr('opacity', 1).attr('stroke', '#B983FF');
-          tooltip.transition().duration(100).style('opacity', 1);
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('opacity', 1)
+            .attr('stroke', '#B983FF')
+            .attr('stroke-width', 4)
+            .style('filter', 'drop-shadow(0 4px 8px rgba(185, 131, 255, 0.3))');
+          tooltip.transition().duration(200).style('opacity', 1);
           tooltip.html(`<strong>${d.data.type}</strong><br>Count: ${formatCount(d.data.count)}`)
-            .style('left', (event.pageX + 12) + 'px')
-            .style('top', (event.pageY - 28) + 'px');
+            .style('left', (event.pageX + 15) + 'px')
+            .style('top', (event.pageY - 35) + 'px');
+        })
+        .on('focus', function(event, d) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('opacity', 1)
+            .attr('stroke', '#B983FF')
+            .attr('stroke-width', 4)
+            .style('filter', 'drop-shadow(0 4px 8px rgba(185, 131, 255, 0.3))');
+        })
+        .on('blur', function() {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('opacity', 0.9)
+            .attr('stroke', '#ffffff')
+            .attr('stroke-width', 3)
+            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
         })
         .on('mousemove', function(event) {
-          tooltip.style('left', (event.pageX + 12) + 'px')
-                 .style('top', (event.pageY - 28) + 'px');
+          tooltip.style('left', (event.pageX + 15) + 'px')
+                 .style('top', (event.pageY - 35) + 'px');
         })
         .on('mouseout', function() {
-          d3.select(this).attr('opacity', 0.95).attr('stroke', '#18122B');
-          tooltip.transition().duration(200).style('opacity', 0);
-          setTimeout(() => { tooltip.remove(); }, 220);
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('opacity', 0.9)
+            .attr('stroke', '#ffffff')
+            .attr('stroke-width', 3)
+            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
+          tooltip.transition().duration(300).style('opacity', 0);
+          setTimeout(() => { tooltip.remove(); }, 320);
         })
         .on('click', function(event, d) {
-          if (currentTypeFilter === d.data.type) {
-            currentTypeFilter = null;
+          if (d.data.type === 'Other' && !drillDownData) {
+            // Drill down into Other types
+            drillDownData = remainingEntries
+              .filter(([type]) => type !== 'Other')
+              .map(([type, count]) => ({type, count}));
+            currentTypeFilter = null; // Clear type filter when drilling down
+            updateCharts();
           } else {
-            currentTypeFilter = d.data.type;
+            // Exit drill-down mode if active and apply filter
+            if (drillDownData) {
+              drillDownData = null;
+            }
+            if (currentTypeFilter === d.data.type) {
+              currentTypeFilter = null;
+            } else {
+              currentTypeFilter = d.data.type;
+            }
+            updateCharts();
           }
-          updateCharts();
+        })
+        .on('keydown', function(event, d) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            if (d.data.type === 'Other' && !drillDownData) {
+              drillDownData = remainingEntries
+                .filter(([type]) => type !== 'Other')
+                .map(([type, count]) => ({type, count}));
+              updateCharts();
+            } else {
+              // Exit drill-down mode if active and apply filter
+              if (drillDownData) {
+                drillDownData = null;
+              }
+              if (currentTypeFilter === d.data.type) {
+                currentTypeFilter = null;
+              } else {
+                currentTypeFilter = d.data.type;
+              }
+              updateCharts();
+            }
+          }
         });
-      // Center label: total
-      svg.append('text')
+      // Center label: total with modern styling
+      const centerGroup = svg.append('g')
+        .attr('class', 'center-label');
+      
+      centerGroup.append('circle')
+        .attr('r', radius * 0.4)
+        .attr('fill', 'rgba(185, 131, 255, 0.1)')
+        .attr('stroke', 'rgba(185, 131, 255, 0.3)')
+        .attr('stroke-width', 2);
+      
+      centerGroup.append('text')
         .attr('text-anchor', 'middle')
-        .attr('y', 10)
-        .attr('font-size', '2.2rem')
-        .attr('font-weight', 'bold')
+        .attr('y', -5)
+        .attr('font-size', '2.4rem')
+        .attr('font-weight', '700')
         .attr('fill', '#B983FF')
-        .text(formatCount(total));
-      svg.append('text')
+        .style('font-family', 'system-ui, -apple-system, sans-serif')
+        .text(formatCount(drillDownData ? drillDownData.reduce((sum, d) => sum + d.count, 0) : total));
+      
+      centerGroup.append('text')
         .attr('text-anchor', 'middle')
-        .attr('y', 38)
-        .attr('font-size', '1.1rem')
+        .attr('y', 25)
+        .attr('font-size', '1rem')
+        .attr('font-weight', '500')
         .attr('fill', '#F3F0FF')
-        .text('Total Cards');
+        .style('font-family', 'system-ui, -apple-system, sans-serif')
+        .text(drillDownData ? 'Other Types' : 'Total Cards');
       // Legend: single column, clickable
       const legendContainer = d3.select('#d3-legend');
       legendContainer.selectAll('*').remove();
-      // ...existing code...
-      data.forEach((d, i) => {
+      
+      if (drillDownData) {
+        // Add back button with modern styling
         legendContainer.append('div')
-          .attr('class', 'd3-legend-item' + (currentTypeFilter === d.type ? ' active' : ''))
-          .style('color', currentTypeFilter === d.type ? '#fff' : '#F3F0FF')
+          .attr('class', 'd3-legend-item back-button')
+          .style('color', '#B983FF')
+          .style('cursor', 'pointer')
+          .style('font-weight', '600')
+          .style('font-size', '0.95rem')
+          .style('margin-bottom', '12px')
+          .style('padding', '8px 12px')
+          .style('background', 'rgba(185, 131, 255, 0.1)')
+          .style('border-radius', '8px')
+          .style('border', '1px solid rgba(185, 131, 255, 0.3)')
+          .style('transition', 'all 0.2s ease')
+          .on('mouseover', function() {
+            d3.select(this)
+              .style('background', 'rgba(185, 131, 255, 0.2)')
+              .style('border-color', 'rgba(185, 131, 255, 0.5)');
+          })
+          .on('mouseout', function() {
+            d3.select(this)
+              .style('background', 'rgba(185, 131, 255, 0.1)')
+              .style('border-color', 'rgba(185, 131, 255, 0.3)');
+          })
           .on('click', function() {
+            drillDownData = null;
+            updateCharts();
+          })
+          .html('← Back to Overview');
+      }
+      
+      data.forEach((d, i) => {
+        const legendItem = legendContainer.append('div')
+          .attr('class', 'd3-legend-item' + (currentTypeFilter === d.type ? ' active' : ''))
+          .style('color', currentTypeFilter === d.type ? '#ffffff' : '#F3F0FF')
+          .style('cursor', 'pointer')
+          .style('font-size', '0.9rem')
+          .style('font-weight', '500')
+          .style('padding', '6px 8px')
+          .style('margin-bottom', '4px')
+          .style('border-radius', '6px')
+          .style('transition', 'all 0.2s ease')
+          .style('font-family', 'system-ui, -apple-system, sans-serif');
+        
+        if (currentTypeFilter === d.type) {
+          legendItem.style('background', 'rgba(185, 131, 255, 0.2)')
+                  .style('border', '1px solid rgba(185, 131, 255, 0.4)');
+        } else {
+          legendItem.on('mouseover', function() {
+            d3.select(this).style('background', 'rgba(255, 255, 255, 0.05)');
+          })
+          .on('mouseout', function() {
+            d3.select(this).style('background', 'transparent');
+          });
+        }
+        
+        legendItem.on('click', function() {
+          if (d.type === 'Other' && !drillDownData) {
+            // Drill down into Other types
+            drillDownData = remainingEntries
+              .filter(([type]) => type !== 'Other')
+              .map(([type, count]) => ({type, count}));
+            currentTypeFilter = null; // Clear type filter when drilling down
+            updateCharts();
+          } else {
+            // Exit drill-down mode if active and apply filter
+            if (drillDownData) {
+              drillDownData = null;
+            }
             if (currentTypeFilter === d.type) {
               currentTypeFilter = null;
             } else {
               currentTypeFilter = d.type;
             }
             updateCharts();
-          })
-          .html(`<span style=\"display:inline-block;width:11px;height:11px;background:${colors[i % colors.length]};border-radius:50%;margin-right:4px;\"></span>${d.type}`);
+          }
+        })
+        .html(`<span style="display:inline-block;width:12px;height:12px;background:${colors[i % colors.length]};border-radius:50%;margin-right:8px;border:2px solid rgba(255,255,255,0.3);"></span>${d.type}`);
       });
     }
     // Initial render
     updateCharts();
+
+    // Add sorting functionality to table headers
+    function setupTableSorting() {
+      const table = document.getElementById('filtered-cards-table');
+      if (!table) return;
+      
+      const headers = table.querySelectorAll('th.sortable');
+      headers.forEach(header => {
+        header.addEventListener('click', function() {
+          const sortBy = this.dataset.sort;
+          if (currentSortBy === sortBy) {
+            // Toggle sort order
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            // New sort column, default to ascending
+            currentSortBy = sortBy;
+            currentSortOrder = 'asc';
+          }
+          updateSortIndicators();
+          fetchFilteredCards(1); // Reset to first page when sorting
+        });
+      });
+    }
+    
+    function updateSortIndicators() {
+      // Clear all indicators
+      document.querySelectorAll('.sort-indicator').forEach(indicator => {
+        indicator.className = 'sort-indicator';
+      });
+      
+      // Set active indicator
+      const activeIndicator = document.getElementById(`sort-${currentSortBy}`);
+      if (activeIndicator) {
+        activeIndicator.classList.add(currentSortOrder === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    }
+    
+    setupTableSorting();
+    updateSortIndicators();
 
     // Make dropdown actually filter the charts
     if (colorDropdown) {
@@ -688,7 +1002,9 @@ window.addEventListener('resize', () => {
         // Save filters to localStorage
         const filters = {
           color: currentColorFilter,
-          type: currentTypeFilter
+          type: currentTypeFilter,
+          sortBy: currentSortBy,
+          sortOrder: currentSortOrder
         };
         localStorage.setItem('mtgCardFilters', JSON.stringify(filters));
         updateCharts();
@@ -700,11 +1016,19 @@ window.addEventListener('resize', () => {
       resetBtn.addEventListener('click', function() {
         currentColorFilter = null;
         currentTypeFilter = null;
+        previousColorFilter = null;
+        drillDownData = null;
+        currentSortBy = 'name';
+        currentSortOrder = 'asc';
+        currentPage = 1;
         if (colorDropdown) colorDropdown.value = '';
+        updateSortIndicators();
         // Save cleared filters to localStorage
         const filters = {
           color: null,
-          type: null
+          type: null,
+          sortBy: 'name',
+          sortOrder: 'asc'
         };
         localStorage.setItem('mtgCardFilters', JSON.stringify(filters));
         if (typeof updateCharts === 'function') updateCharts();
@@ -721,4 +1045,47 @@ window.addEventListener('resize', () => {
     d3.select('#d3-bar-chart').html('');
     d3.select('#d3-donut-chart').html('');
   }
+
+  // Card modal function
+  window.showCardModal = function(name, imageUrl, typeLine, set, rarity, price) {
+    // Create modal HTML
+    const modalHtml = `
+      <div class="modal fade" id="cardModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content bg-dark text-light">
+            <div class="modal-header">
+              <h5 class="modal-title">${name}</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+              <img src="${imageUrl}" alt="${name}" class="img-fluid mb-3" style="max-height: 400px;">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Type:</strong> ${typeLine}</p>
+                  <p><strong>Set:</strong> ${set}</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Rarity:</strong> ${rarity}</p>
+                  <p><strong>Price:</strong> ${price}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Remove existing modal if present
+    const existingModal = document.getElementById('cardModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('cardModal'));
+    modal.show();
+  };
 });

@@ -17,11 +17,11 @@ def batched_delete(collection, batch_size=10):
         ids = list(collection.find({}, {'_id': 1}).limit(batch_size))
         if not ids:
             break
-        id_list = [doc['_id'] for doc in ids]
-        result = collection.delete_many({'_id': {'$in': id_list}})
-        total_deleted += result.deleted_count
-        print(f"Deleted {result.deleted_count} cards (total: {total_deleted})...")
-        time.sleep(0.1)  # Sleep 100ms to avoid rate limiting
+            for doc in ids:
+                result = collection.delete_one({'_id': doc['_id']})
+                total_deleted += result.deleted_count
+                print(f"Deleted 1 card (total: {total_deleted})...", end='\r')
+                time.sleep(0.05)  # Sleep 50ms to avoid rate limiting
     print(f"All done. Deleted {total_deleted} cards in total.")
 
 def main():
@@ -29,7 +29,7 @@ def main():
     container_name = os.environ.get('COSMOS_CONTAINER_NAME', 'mtgecorec')
     client = get_mongo_client()
     collection = get_collection(client, container_name, db_name)
-    batched_delete(collection, batch_size=500)
+    batched_delete(collection, batch_size=1)
 
 if __name__ == "__main__":
     main()
