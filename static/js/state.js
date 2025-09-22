@@ -10,6 +10,39 @@ export let drillDownData = null; // For drilling into "Other" types
 export let currentSortBy = 'name'; // Default sort column
 export let currentSortOrder = 'asc'; // 'asc' or 'desc'
 
+// Setter functions for state variables
+export function setCurrentPage(page) {
+  currentPage = page;
+}
+
+export function setTotalFilteredCards(total) {
+  totalFilteredCards = total;
+}
+
+export function setCurrentSortBy(sortBy) {
+  currentSortBy = sortBy;
+}
+
+export function setCurrentSortOrder(sortOrder) {
+  currentSortOrder = sortOrder;
+}
+
+export function setCurrentColorFilter(filter) {
+  currentColorFilter = filter;
+}
+
+export function setCurrentTypeFilter(filter) {
+  currentTypeFilter = filter;
+}
+
+export function setPreviousColorFilter(filter) {
+  previousColorFilter = filter;
+}
+
+export function setDrillDownData(data) {
+  drillDownData = data;
+}
+
 // Load state from localStorage
 export function loadStateFromStorage() {
   const savedFilters = localStorage.getItem('mtgCardFilters');

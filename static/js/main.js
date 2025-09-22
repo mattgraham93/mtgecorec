@@ -10,6 +10,14 @@ import {
   drillDownData,
   currentSortBy,
   currentSortOrder,
+  setCurrentPage,
+  setTotalFilteredCards,
+  setCurrentSortBy,
+  setCurrentSortOrder,
+  setCurrentColorFilter,
+  setCurrentTypeFilter,
+  setPreviousColorFilter,
+  setDrillDownData,
   loadStateFromStorage,
   saveStateToStorage,
   resetFilters
@@ -104,11 +112,11 @@ async function updateCharts() {
 // Handle color click from bar chart
 function handleColorClick(color) {
   if (currentColorFilter === color) {
-    currentColorFilter = null;
-    previousColorFilter = null;
+    setCurrentColorFilter(null);
+    setPreviousColorFilter(null);
   } else {
-    previousColorFilter = currentColorFilter;
-    currentColorFilter = color;
+    setPreviousColorFilter(currentColorFilter);
+    setCurrentColorFilter(color);
   }
   const colorDropdown = document.getElementById('color-filter-dropdown');
   if (colorDropdown) colorDropdown.value = currentColorFilter || '';
@@ -118,28 +126,28 @@ function handleColorClick(color) {
 // Handle type click from donut chart
 function handleTypeClick(type, isDrillDown) {
   if (isDrillDown) {
-    drillDownData = null;
+    setDrillDownData(null);
   }
   if (currentTypeFilter === type) {
-    currentTypeFilter = null;
+    setCurrentTypeFilter(null);
   } else {
-    currentTypeFilter = type;
+    setCurrentTypeFilter(type);
   }
   updateCharts();
 }
 
 // Handle drill down
 function handleDrillDown(remainingEntries) {
-  drillDownData = remainingEntries
+  setDrillDownData(remainingEntries
     .filter(([type]) => type !== 'Other')
-    .map(([type, count]) => ({type, count}));
-  currentTypeFilter = null; // Clear type filter when drilling down
+    .map(([type, count]) => ({type, count})));
+  setCurrentTypeFilter(null); // Clear type filter when drilling down
   updateCharts();
 }
 
 // Handle back to overview
 function handleBackToOverview() {
-  drillDownData = null;
+  setDrillDownData(null);
   updateCharts();
 }
 
@@ -155,8 +163,8 @@ async function fetchAndRenderTable(page = 1) {
     const data = await fetchFilteredCards(page, currentSortBy, currentSortOrder, currentColorFilter, currentTypeFilter, previousColorFilter);
 
     // Update count badge and pagination variables
-    totalFilteredCards = data.total;
-    currentPage = data.page;
+    setTotalFilteredCards(data.total);
+    setCurrentPage(data.page);
     const countBadge = document.getElementById('filtered-count');
     if (countBadge) {
       countBadge.textContent = totalFilteredCards.toLocaleString();
@@ -182,10 +190,10 @@ function handlePageChange(page) {
 // Handle sort change
 function handleSortChange(sortBy) {
   if (currentSortBy === sortBy) {
-    currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    setCurrentSortOrder(currentSortOrder === 'asc' ? 'desc' : 'asc');
   } else {
-    currentSortBy = sortBy;
-    currentSortOrder = 'asc';
+    setCurrentSortBy(sortBy);
+    setCurrentSortOrder('asc');
   }
   updateSortIndicators(currentSortBy, currentSortOrder);
   fetchAndRenderTable(1); // Reset to first page when sorting
@@ -216,7 +224,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const colorDropdown = document.getElementById('color-filter-dropdown');
     if (colorDropdown) {
       colorDropdown.addEventListener('change', function() {
-        currentColorFilter = colorDropdown.value || null;
+        setCurrentColorFilter(colorDropdown.value || null);
         saveStateToStorage();
         updateCharts();
       });
