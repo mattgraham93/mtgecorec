@@ -13,18 +13,42 @@
         <h1 class="display-5 fw-bold text-primary mb-4">Visualizations</h1>
         <div id="active-filters" class="mb-3" style="font-size: 1.1rem; color: #F3F0FF;"></div>
         <div class="d-flex justify-content-between align-items-center mb-2" style="gap:1rem;">
-          <div>
-            <select id="color-filter-dropdown" class="form-select" style="width:auto;display:inline-block;font-weight:600;border-radius:2rem;padding:0.2rem 1.2rem;min-width:120px;">
-              <option value="">All Colors</option>
-              <option value="White">White</option>
-              <option value="Blue">Blue</option>
-              <option value="Black">Black</option>
-              <option value="Red">Red</option>
-              <option value="Green">Green</option>
-              <option value="Colorless">Colorless</option>
-              <option value="Many">Many</option>
-              <option value="Other">Other</option>
-            </select>
+          <div class="d-flex align-items-center" style="gap:1rem;">
+            <div>
+              <label class="form-label mb-1" style="font-size:0.85rem;font-weight:600;color:#F3F0FF;">Colors</label>
+              <div class="d-flex flex-wrap gap-2" id="color-checkboxes">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input color-checkbox" type="checkbox" id="color-white" value="White">
+                  <label class="form-check-label" for="color-white" style="font-size:0.8rem;color:#F3F0FF;">White</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input color-checkbox" type="checkbox" id="color-blue" value="Blue">
+                  <label class="form-check-label" for="color-blue" style="font-size:0.8rem;color:#F3F0FF;">Blue</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input color-checkbox" type="checkbox" id="color-black" value="Black">
+                  <label class="form-check-label" for="color-black" style="font-size:0.8rem;color:#F3F0FF;">Black</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input color-checkbox" type="checkbox" id="color-red" value="Red">
+                  <label class="form-check-label" for="color-red" style="font-size:0.8rem;color:#F3F0FF;">Red</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input color-checkbox" type="checkbox" id="color-green" value="Green">
+                  <label class="form-check-label" for="color-green" style="font-size:0.8rem;color:#F3F0FF;">Green</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input color-checkbox" type="checkbox" id="color-colorless" value="Colorless">
+                  <label class="form-check-label" for="color-colorless" style="font-size:0.8rem;color:#F3F0FF;">Colorless</label>
+                </div>
+              </div>
+            </div>
+            <div class="form-check ms-3 d-flex align-items-center">
+              <input class="form-check-input" type="checkbox" id="exclusive-colors-toggle">
+              <label class="form-check-label ms-2" for="exclusive-colors-toggle" style="font-size:0.85rem;font-weight:600;color:#F3F0FF;">
+                Exclusive
+              </label>
+            </div>
           </div>
           <button id="reset-filters-btn" class="btn btn-primary" style="font-weight:600;border-radius:2rem;padding:0.4rem 1.2rem;box-shadow:0 0 8px #9D4EDD;font-size:0.85em;">
             <span style="font-size:1.1em;">&#x21bb;</span> Reset Filters
@@ -54,15 +78,21 @@
                   <th class="sortable" data-sort="colors">Color <span class="sort-indicator" id="sort-colors"></span></th>
                   <th class="sortable" data-sort="rarity">Rarity <span class="sort-indicator" id="sort-rarity"></span></th>
                   <th class="sortable" data-sort="price">Price <span class="sort-indicator" id="sort-price"></span></th>
+                  <th class="sortable" data-sort="set_count">Sets <span class="sort-indicator" id="sort-set_count"></span></th>
                   <th>Image</th>
                 </tr>
               </thead>
               <tbody>
-                <!-- Data will be inserted here -->
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">
+                    <i class="fas fa-table me-2"></i>
+                    Card data will load when you scroll to this section or apply filters
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
-          <nav class="mt-2">
+          <nav class="mt-2 d-none">
             <ul class="pagination justify-content-center" id="filtered-pagination">
               <!-- Pagination will be inserted here -->
             </ul>
@@ -236,18 +266,9 @@
         padding: 0.25rem;
       }
       
-      @media (max-width: 768px) {
-        #filtered-cards-table {
-          font-size: 0.75rem;
-        }
-        #filtered-cards-table th,
-        #filtered-cards-table td {
-          padding: 0.15rem;
-        }
-        #filtered-cards-table img {
-          max-width: 30px !important;
-          max-height: 40px !important;
-        }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>

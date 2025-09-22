@@ -54,6 +54,9 @@ def api_cards():
    # Get sorting params
    sort_by = request.args.get('sort_by', 'name')  # default sort by name
    sort_order = request.args.get('sort_order', 'asc')  # 'asc' or 'desc'
+   # Get multi-color and exclusive params
+   colors = request.args.getlist('colors')  # multiple colors
+   exclusive_colors = request.args.get('exclusive_colors') == 'true'
    skip = (page - 1) * page_size
    print(f'Pagination params: page={page}, page_size={page_size}, skip={skip}')
    print(f'Filter params: color={color_filter}, type={type_filter}')
@@ -61,7 +64,39 @@ def api_cards():
    many = request.args.get('many') == 'true'
    # Build MongoDB query based on filters
    query = {}
-   if color_filter:
+   
+   # Handle color filtering (single color for backward compatibility, or multiple colors)
+   if colors:
+      # Multiple colors mode
+      color_codes = []
+      for color in colors:
+         if color in ['White', 'Blue', 'Black', 'Red', 'Green']:
+            color_map = {'White': 'W', 'Blue': 'U', 'Black': 'B', 'Red': 'R', 'Green': 'G'}
+            color_codes.append(color_map[color])
+      
+      if exclusive_colors:
+         # Exclusive: cards must have exactly these colors (and no others)
+         if 'Colorless' in colors:
+            query['$or'] = [
+               {'colors': {'$exists': False}},
+               {'colors': []},
+               {'colors': None}
+            ]
+         else:
+            query['colors'] = {'$all': color_codes, '$size': len(color_codes)}
+      else:
+         # Inclusive: cards must have at least one of these colors
+         if 'Colorless' in colors:
+            query['$or'] = [
+               {'colors': {'$exists': False}},
+               {'colors': []},
+               {'colors': None},
+               {'colors': {'$in': color_codes}}
+            ]
+         else:
+            query['colors'] = {'$in': color_codes}
+   elif color_filter:
+      # Backward compatibility: single color filter
       if color_filter == 'Many':
          query['$and'] = [
             {'colors': {'$exists': True}},
@@ -91,37 +126,97 @@ def api_cards():
          ]
    if type_filter:
       if type_filter == 'Other':
-         query['type_line'] = {'$not': {'$regex': '^(Creature|Instant|Sorcery|Enchantment|Artifact|Planeswalker|Land)'}}
+         query['$and'] = query.get('$and', []) + [
+            {'$or': [
+               {'type_line': {'$exists': False}},
+               {'type_line': None},
+               {'type_line': {'$not': {'$regex': '^(Creature|Instant|Sorcery|Enchantment|Artifact|Planeswalker|Land)'}}}
+            ]}
+         ]
       else:
-         query['type_line'] = {'$regex': f'^{type_filter}'}
+         query['$and'] = query.get('$and', []) + [
+            {'type_line': {'$exists': True}},
+            {'type_line': {'$ne': None}},
+            {'type_line': {'$regex': f'^{type_filter}'}}
+         ]
    print(f'MongoDB query: {query}')
-   total = collection.count_documents(query)
-   print(f'Total cards matching filters: {total}')
-   # Build sort specification
-   sort_spec = []
-   if sort_by in ['name', 'type_line', 'set', 'rarity', 'price']:
-      sort_direction = 1 if sort_order == 'asc' else -1
-      sort_spec.append((sort_by, sort_direction))
-   # Always sort by name as secondary sort for consistent ordering
-   if sort_by != 'name':
-      sort_spec.append(('name', 1))
-   print(f'Sort specification: {sort_spec}')
-   # Only return needed fields for each card
-   projection = {
-      '_id': 0,
-      'name': 1,
-      'type_line': 1,
-      'set': 1,
-      'rarity': 1,
-      'price': 1,
-      'image_uris': 1,
-      'colors': 1,
-      'mana_cost': 1,
-      'artist': 1
-   }
-   cursor = collection.find(query, projection).sort(sort_spec).skip(skip).limit(page_size)
-   cards = list(cursor)
-   print(f'Returning {len(cards)} cards for this page')
+   
+   # More efficient approach: get unique card names first, then paginate
+   name_pipeline = [
+      {'$match': query},
+      {'$group': {'_id': '$name'}},  # Just get unique names
+      {'$sort': {'_id': 1}},  # Sort by name
+      {'$skip': skip},
+      {'$limit': page_size},
+      {'$project': {'name': '$_id', '_id': 0}}
+   ]
+   
+   # Get total count more efficiently
+   total_pipeline = [
+      {'$match': query},
+      {'$group': {'_id': '$name'}},
+      {'$count': 'total'}
+   ]
+   
+   try:
+      # Get paginated card names
+      name_results = list(collection.aggregate(name_pipeline))
+      card_names = [doc['name'] for doc in name_results]
+      
+      # Get total count
+      total_result = list(collection.aggregate(total_pipeline))
+      total = total_result[0]['total'] if total_result else 0
+      
+      # Now get full card details for these specific cards
+      if card_names:
+         # Define sort direction
+         sort_direction = 1 if sort_order == 'asc' else -1
+         
+         cards_pipeline = [
+            {'$match': {
+               'name': {'$in': card_names},
+               **query  # Apply the same filters
+            }},
+            {'$group': {
+               '_id': '$name',
+               'card': {'$first': '$$ROOT'},
+               'set_count': {'$sum': 1},
+               'sets': {'$push': {
+                  'set': '$set',
+                  'rarity': '$rarity',
+                  'price': '$price',
+                  'image_uris': '$image_uris',
+                  'artist': '$artist'
+               }}
+            }},
+            {'$project': {
+               '_id': 0,
+               'name': '$_id',
+               'type_line': '$card.type_line',
+               'colors': '$card.colors',
+               'mana_cost': '$card.mana_cost',
+               'artist': '$card.artist',
+               'set_count': 1,
+               'sets': 1,
+               # Use the first set's data for display
+               'set': {'$arrayElemAt': ['$sets.set', 0]},
+               'rarity': {'$arrayElemAt': ['$sets.rarity', 0]},
+               'price': {'$arrayElemAt': ['$sets.price', 0]},
+               'image_uris': {'$arrayElemAt': ['$sets.image_uris', 0]}
+            }},
+            {'$sort': {sort_by: sort_direction}}
+         ]
+         
+         cards = list(collection.aggregate(cards_pipeline))
+      else:
+         cards = []
+         
+   except Exception as e:
+      print(f'Error in aggregation: {e}')
+      return jsonify({'error': 'Database aggregation error', 'details': str(e)}), 500
+   
+   print(f'Total unique cards matching filters: {total}')
+   print(f'Returning {len(cards)} unique cards for this page')
    return jsonify({
       'cards': cards,
       'total': total,
@@ -143,10 +238,45 @@ def api_cards_summary():
    color_filter = request.args.get('color')
    type_filter = request.args.get('type')
    many = request.args.get('many') == 'true'
+   # Get multi-color and exclusive params
+   colors = request.args.getlist('colors')
+   exclusive_colors = request.args.get('exclusive_colors') == 'true'
 
    # Build MongoDB query based on filters (same as /api/cards)
    query = {}
-   if color_filter:
+   
+   # Handle color filtering (single color for backward compatibility, or multiple colors)
+   if colors:
+      # Multiple colors mode
+      color_codes = []
+      for color in colors:
+         if color in ['White', 'Blue', 'Black', 'Red', 'Green']:
+            color_map = {'White': 'W', 'Blue': 'U', 'Black': 'B', 'Red': 'R', 'Green': 'G'}
+            color_codes.append(color_map[color])
+      
+      if exclusive_colors:
+         # Exclusive: cards must have exactly these colors (and no others)
+         if 'Colorless' in colors:
+            query['$or'] = [
+               {'colors': {'$exists': False}},
+               {'colors': []},
+               {'colors': None}
+            ]
+         else:
+            query['colors'] = {'$all': color_codes, '$size': len(color_codes)}
+      else:
+         # Inclusive: cards must have at least one of these colors
+         if 'Colorless' in colors:
+            query['$or'] = [
+               {'colors': {'$exists': False}},
+               {'colors': []},
+               {'colors': None},
+               {'colors': {'$in': color_codes}}
+            ]
+         else:
+            query['colors'] = {'$in': color_codes}
+   elif color_filter:
+      # Backward compatibility: single color filter
       if color_filter == 'Many':
          query['$and'] = [
             {'colors': {'$exists': True}},
@@ -177,44 +307,124 @@ def api_cards_summary():
 
    if type_filter:
       if type_filter == 'Other':
-         query['type_line'] = {'$not': {'$regex': '^(Creature|Instant|Sorcery|Enchantment|Artifact|Planeswalker|Land)'}}
+         query['$and'] = query.get('$and', []) + [
+            {'$or': [
+               {'type_line': {'$exists': False}},
+               {'type_line': None},
+               {'type_line': {'$not': {'$regex': '^(Creature|Instant|Sorcery|Enchantment|Artifact|Planeswalker|Land)'}}}
+            ]}
+         ]
       else:
-         query['type_line'] = {'$regex': f'^{type_filter}'}
+         query['$and'] = query.get('$and', []) + [
+            {'type_line': {'$exists': True}},
+            {'type_line': {'$ne': None}},
+            {'type_line': {'$regex': f'^{type_filter}'}}
+         ]
 
    print(f'MongoDB summary query: {query}')
 
-   # Aggregation pipeline for total, color, and type counts
+   # Aggregation pipeline for total and combined color-type counts (using unique cards)
    pipeline = [
       {'$match': query},
       {'$facet': {
          'total': [
+            {'$group': {'_id': '$name'}},
             {'$count': 'count'}
          ],
-         'colors': [
-            {'$project': {'colors': 1}},
+         'combined': [
+            {'$project': {
+               'name': 1,
+               'colors': 1,
+               'type_line': 1
+            }},
             {'$unwind': {
                'path': '$colors',
                'preserveNullAndEmptyArrays': True
             }},
             {'$group': {
-               '_id': '$colors',
+               '_id': {
+                  'name': '$name',
+                  'color': {
+                     '$cond': [
+                        {'$ifNull': ['$colors', False]},
+                        {
+                           '$switch': {
+                              'branches': [
+                                 {'case': {'$eq': ['$colors', 'W']}, 'then': 'White'},
+                                 {'case': {'$eq': ['$colors', 'U']}, 'then': 'Blue'},
+                                 {'case': {'$eq': ['$colors', 'B']}, 'then': 'Black'},
+                                 {'case': {'$eq': ['$colors', 'R']}, 'then': 'Red'},
+                                 {'case': {'$eq': ['$colors', 'G']}, 'then': 'Green'}
+                              ],
+                              'default': 'Other'
+                           }
+                        },
+                        'Colorless'
+                     ]
+                  },
+                  'type': {
+                     '$cond': [
+                        {'$ifNull': ['$type_line', False]},
+                        {'$arrayElemAt': [{'$split': ['$type_line', ' — ']}, 0]},
+                        'Other'
+                     ]
+                  }
+               },
+               'count': {'$sum': 1}
+            }},
+            {'$group': {
+               '_id': {
+                  'color': '$_id.color',
+                  'type': '$_id.type'
+               },
+               'count': {'$sum': 1}
+            }},
+            {'$project': {
+               '_id': 0,
+               'color': '$_id.color',
+               'type': '$_id.type',
+               'count': 1
+            }}
+         ],
+         'colors': [
+            {'$project': {'name': 1, 'colors': 1}},
+            {'$unwind': {
+               'path': '$colors',
+               'preserveNullAndEmptyArrays': True
+            }},
+            {'$group': {
+               '_id': {
+                  'name': '$name',
+                  'color': '$colors'
+               }
+            }},
+            {'$group': {
+               '_id': '$_id.color',
                'count': {'$sum': 1}
             }}
          ],
          'many': [
+            {'$project': {'name': 1, 'colors': 1}},
             {'$match': {'colors.1': {'$exists': True}}},
+            {'$group': {'_id': '$name'}},
             {'$count': 'count'}
          ],
          'types': [
-            {'$project': {'type_line': 1}},
+            {'$project': {'name': 1, 'type_line': 1}},
             {'$group': {
                '_id': {
-                  '$cond': [
-                     {'$ifNull': ['$type_line', False]},
-                     {'$arrayElemAt': [{'$split': ['$type_line', ' — ']}, 0]},
-                     'Other'
-                  ]
-               },
+                  'name': '$name',
+                  'type': {
+                     '$cond': [
+                        {'$ifNull': ['$type_line', False]},
+                        {'$arrayElemAt': [{'$split': ['$type_line', ' — ']}, 0]},
+                        'Other'
+                     ]
+                  }
+               }
+            }},
+            {'$group': {
+               '_id': '$_id.type',
                'count': {'$sum': 1}
             }}
          ]
@@ -242,6 +452,11 @@ def api_cards_summary():
 
    # Parse aggregation result
    total = result['total'][0]['count'] if result['total'] else 0
+   
+   # Combined color-type aggregations
+   combined_aggregations = result['combined'] if 'combined' in result else []
+   
+   # Legacy color counts (keep for backward compatibility) - now counting unique cards
    color_counts = {'Colorless': 0, 'Many': 0}
    color_map = {'W': 'White', 'U': 'Blue', 'B': 'Black', 'R': 'Red', 'G': 'Green'}
    for doc in result['colors']:
@@ -252,6 +467,7 @@ def api_cards_summary():
          color_counts[color_name] = color_counts.get(color_name, 0) + doc['count']
    color_counts['Many'] = result['many'][0]['count'] if result['many'] else 0
 
+   # Legacy type counts (keep for backward compatibility) - now counting unique cards
    type_counts = {}
    for doc in result['types']:
       t = doc['_id'] or 'Other'
@@ -259,9 +475,10 @@ def api_cards_summary():
          t = 'Other'
       type_counts[t] = type_counts.get(t, 0) + doc['count']
 
-   print(f'Summary: total={total}, color_counts={color_counts}, type_counts={type_counts}')
+   print(f'Summary: total={total} unique cards, combined_aggregations_count={len(combined_aggregations)}, color_counts={color_counts}, type_counts={type_counts}')
    return jsonify({
       'total': total,
+      'combined_aggregations': combined_aggregations,
       'color_counts': color_counts,
       'type_counts': type_counts
    })

@@ -1,5 +1,5 @@
 // Chart rendering functions for MTG card visualizations
-import { allCards } from './state.js';
+import { allCards, setCurrentTypeFilter } from './state.js';
 
 // Format numbers as XX.Xk for thousands
 export function formatCount(n) {
@@ -135,7 +135,6 @@ export function renderBarChart(data, onColorClick) {
       .attr('stroke-width', 2)
       .attr('rx', 4)
       .attr('opacity', 0.9)
-      .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))')
       .style('cursor', 'pointer')
       .on('mouseover', function(event, d) {
         d3.select(this)
@@ -143,8 +142,7 @@ export function renderBarChart(data, onColorClick) {
           .duration(200)
           .attr('opacity', 1)
           .attr('stroke', '#B983FF')
-          .attr('stroke-width', 3)
-          .style('filter', 'drop-shadow(0 3px 6px rgba(185, 131, 255, 0.2))');
+          .attr('stroke-width', 3);
         tooltip.transition().duration(200).style('opacity', 1);
         tooltip.html(`<strong>${d.color}</strong><br>Count: ${formatCount(d.count)}`)
           .style('left', (event.pageX + 15) + 'px')
@@ -160,8 +158,7 @@ export function renderBarChart(data, onColorClick) {
           .duration(200)
           .attr('opacity', 0.9)
           .attr('stroke', '#ffffff')
-          .attr('stroke-width', 2)
-          .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))');
+          .attr('stroke-width', 2);
         tooltip.transition().duration(300).style('opacity', 0);
       })
       .on('click', function(event, d) {
@@ -240,7 +237,6 @@ export function renderBarChart(data, onColorClick) {
       .attr('stroke-width', 2)
       .attr('rx', 4)
       .attr('opacity', 0.9)
-      .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))')
       .style('cursor', 'pointer')
       .on('mouseover', function(event, d) {
         d3.select(this)
@@ -248,8 +244,7 @@ export function renderBarChart(data, onColorClick) {
           .duration(200)
           .attr('opacity', 1)
           .attr('stroke', '#B983FF')
-          .attr('stroke-width', 3)
-          .style('filter', 'drop-shadow(0 3px 6px rgba(185, 131, 255, 0.2))');
+          .attr('stroke-width', 3);
         tooltip.transition().duration(200).style('opacity', 1);
         tooltip.html(`<strong>${d.color}</strong><br>Count: ${formatCount(d.count)}`)
           .style('left', (event.pageX + 15) + 'px')
@@ -265,8 +260,7 @@ export function renderBarChart(data, onColorClick) {
           .duration(200)
           .attr('opacity', 0.9)
           .attr('stroke', '#ffffff')
-          .attr('stroke-width', 2)
-          .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))');
+          .attr('stroke-width', 2);
         tooltip.transition().duration(300).style('opacity', 0);
       })
       .on('click', function(event, d) {
@@ -364,8 +358,8 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
 
   const pie = d3.pie().value(d => d.count);
   const arc = d3.arc().innerRadius(radius * 0.55).outerRadius(radius);
-  // Remove any existing donut tooltips before creating a new one
-  d3.selectAll('.d3-tooltip.donut').remove();
+  
+  // Create persistent tooltip (like bar chart)
   const tooltip = d3.select('body').append('div')
     .attr('class', 'd3-tooltip donut')
     .style('position', 'absolute')
@@ -391,7 +385,6 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
     .attr('stroke', '#ffffff')
     .attr('stroke-width', 3)
     .attr('opacity', 0.9)
-    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
     .attr('cursor', 'pointer')
     .attr('tabindex', 0)
     .attr('role', 'button')
@@ -402,10 +395,28 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
         .duration(200)
         .attr('opacity', 1)
         .attr('stroke', '#B983FF')
-        .attr('stroke-width', 4)
-        .style('filter', 'drop-shadow(0 4px 8px rgba(185, 131, 255, 0.3))');
+        .attr('stroke-width', 4);
+      
+      // Enhanced tooltip with combined data if available
+      let tooltipContent = `<strong>${d.data.type}</strong><br>Count: ${formatCount(d.data.count)}`;
+      
+      if (!drillDownData && window.cardSummary && window.cardSummary.combined_aggregations) {
+        // Show top color combinations for this type
+        const typeAggregations = window.cardSummary.combined_aggregations
+          .filter(item => item.type === d.data.type)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 3);
+        
+        if (typeAggregations.length > 0) {
+          tooltipContent += '<br><br><small>Top colors:</small>';
+          typeAggregations.forEach(agg => {
+            tooltipContent += `<br>${agg.color}: ${formatCount(agg.count)}`;
+          });
+        }
+      }
+      
       tooltip.transition().duration(200).style('opacity', 1);
-      tooltip.html(`<strong>${d.data.type}</strong><br>Count: ${formatCount(d.data.count)}`)
+      tooltip.html(tooltipContent)
         .style('left', (event.pageX + 15) + 'px')
         .style('top', (event.pageY - 35) + 'px');
     })
@@ -415,8 +426,7 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
         .duration(200)
         .attr('opacity', 1)
         .attr('stroke', '#B983FF')
-        .attr('stroke-width', 4)
-        .style('filter', 'drop-shadow(0 4px 8px rgba(185, 131, 255, 0.3))');
+        .attr('stroke-width', 4);
     })
     .on('blur', function() {
       d3.select(this)
@@ -424,8 +434,7 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
         .duration(200)
         .attr('opacity', 0.9)
         .attr('stroke', '#ffffff')
-        .attr('stroke-width', 3)
-        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
+        .attr('stroke-width', 3);
     })
     .on('mousemove', function(event) {
       tooltip.style('left', (event.pageX + 15) + 'px')
@@ -437,15 +446,36 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
         .duration(200)
         .attr('opacity', 0.9)
         .attr('stroke', '#ffffff')
-        .attr('stroke-width', 3)
-        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
+        .attr('stroke-width', 3);
       tooltip.transition().duration(300).style('opacity', 0);
-      setTimeout(() => { tooltip.remove(); }, 320);
     })
     .on('click', function(event, d) {
       if (d.data.type === 'Other' && !drillDownData) {
-        onDrillDown(remainingEntries);
+        // Drill down into Other types using combined aggregations if available
+        if (window.cardSummary && window.cardSummary.combined_aggregations) {
+          const otherAggregations = window.cardSummary.combined_aggregations
+            .filter(item => !['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land'].includes(item.type))
+            .reduce((acc, item) => {
+              const existing = acc.find(a => a.type === item.type);
+              if (existing) {
+                existing.count += item.count;
+              } else {
+                acc.push({type: item.type, count: item.count});
+              }
+              return acc;
+            }, [])
+            .sort((a, b) => b.count - a.count);
+          
+          onDrillDown(otherAggregations);
+        } else {
+          // Fallback to old method
+          onDrillDown(remainingEntries);
+        }
       } else {
+        // Exit drill-down mode if active and apply filter
+        if (drillDownData) {
+          onBackToOverview();
+        }
         onTypeClick(d.data.type, drillDownData);
       }
     })
@@ -453,8 +483,29 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         if (d.data.type === 'Other' && !drillDownData) {
-          onDrillDown(remainingEntries);
+          if (window.cardSummary && window.cardSummary.combined_aggregations) {
+            const otherAggregations = window.cardSummary.combined_aggregations
+              .filter(item => !['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land'].includes(item.type))
+              .reduce((acc, item) => {
+                const existing = acc.find(a => a.type === item.type);
+                if (existing) {
+                  existing.count += item.count;
+                } else {
+                  acc.push({type: item.type, count: item.count});
+                }
+                return acc;
+              }, [])
+              .sort((a, b) => b.count - a.count);
+            
+            onDrillDown(otherAggregations);
+          } else {
+            onDrillDown(remainingEntries);
+          }
         } else {
+          // Exit drill-down mode if active and apply filter
+          if (drillDownData) {
+            onBackToOverview();
+          }
           onTypeClick(d.data.type, drillDownData);
         }
       }
@@ -543,7 +594,24 @@ export function renderDonutChart(data, drillDownData, onTypeClick, onDrillDown, 
     })
     .on('click', function() {
       if (d.type === 'Other' && !drillDownData) {
-        onDrillDown(remainingEntries);
+        if (window.cardSummary && window.cardSummary.combined_aggregations) {
+          const otherAggregations = window.cardSummary.combined_aggregations
+            .filter(item => !['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land'].includes(item.type))
+            .reduce((acc, item) => {
+              const existing = acc.find(a => a.type === item.type);
+              if (existing) {
+                existing.count += item.count;
+              } else {
+                acc.push({type: item.type, count: item.count});
+              }
+              return acc;
+            }, [])
+            .sort((a, b) => b.count - a.count);
+          
+          onDrillDown(otherAggregations);
+        } else {
+          onDrillDown(remainingEntries);
+        }
       } else {
         onTypeClick(d.type, drillDownData);
       }

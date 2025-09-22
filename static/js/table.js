@@ -1,13 +1,18 @@
 // Table management functions for MTG card visualizations
 import { colorNorm } from './charts.js';
 
+// Global variable to store current cards data for modal access
+let currentTableCards = [];
+
 // Render filtered cards table
 export function renderFilteredCardsTable(cards) {
+  // Store cards data globally for modal access
+  currentTableCards = cards || [];
   const tbody = document.querySelector('#filtered-cards-table tbody');
   if (!tbody) return;
 
   if (!cards || cards.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No cards match the current filters</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No cards match the current filters</td></tr>';
     return;
   }
 
@@ -37,10 +42,16 @@ export function renderFilteredCardsTable(cards) {
     // Format price
     const priceDisplay = card.price !== undefined ? '$' + card.price.toLocaleString() : '';
 
-    // Format image
+    // Format set count
+    const setCountDisplay = card.set_count || 1;
+
+    // Lazy load image with placeholder
     const imageDisplay = card.image_uris && card.image_uris.normal
-      ? `<img src="${card.image_uris.normal}" alt="${card.name}" style="max-width:50px;max-height:60px;border-radius:6px;border:2px solid rgba(185,131,255,0.2);box-shadow:0 2px 4px rgba(0,0,0,0.1);cursor:pointer;transition:all 0.2s ease;" onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 8px rgba(185,131,255,0.3)';" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" onclick="showCardModal('${card.name}', '${card.image_uris.normal}', '${card.type_line || ''}', '${card.set || ''}', '${card.rarity || ''}', '${priceDisplay}')">`
-      : '';
+      ? `<div class="card-image-container" style="width:50px;height:60px;display:flex;align-items:center;justify-content:center;background:rgba(185,131,255,0.1);border-radius:6px;border:2px solid rgba(185,131,255,0.2);">
+           <div class="image-placeholder" style="width:20px;height:20px;border:2px solid #B983FF;border-top:2px solid transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
+         </div>
+         <img src="${card.image_uris.normal}" alt="${card.name}" style="display:none;max-width:50px;max-height:60px;border-radius:6px;border:2px solid rgba(185,131,255,0.2);box-shadow:0 2px 4px rgba(0,0,0,0.1);cursor:pointer;transition:all 0.2s ease;" onload="this.style.display='block';this.previousElementSibling.style.display='none';" onerror="this.style.display='none';this.previousElementSibling.innerHTML='❌';" onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 8px rgba(185,131,255,0.3)';" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" data-card-index="${i}" onclick="showCardModalFromTable(this)">`
+      : '<div class="text-muted" style="width:50px;text-align:center;">—</div>';
 
     const row = document.createElement('tr');
     row.style.cssText = `
@@ -64,6 +75,7 @@ export function renderFilteredCardsTable(cards) {
       <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${colorDisplay}</td>
       <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${card.rarity || ''}</td>
       <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;">${priceDisplay}</td>
+      <td style="padding:12px 16px;color:#F3F0FF;font-family:system-ui,-apple-system,sans-serif;text-align:center;">${setCountDisplay}</td>
       <td style="padding:12px 16px;text-align:center;">${imageDisplay}</td>
     `;
     tbody.appendChild(row);
@@ -74,14 +86,19 @@ export function renderFilteredCardsTable(cards) {
 export function renderPagination(totalFilteredCards, currentPage, pageSize, onPageChange) {
   const pageCount = Math.max(1, Math.ceil(totalFilteredCards / pageSize));
   const pagination = document.getElementById('filtered-pagination');
+  const paginationContainer = document.querySelector('nav.mt-2');
   if (!pagination) return;
 
   pagination.innerHTML = '';
 
   if (totalFilteredCards <= pageSize) {
-    // Don't show pagination if all cards fit on one page
+    // Hide pagination if all cards fit on one page
+    if (paginationContainer) paginationContainer.classList.add('d-none');
     return;
   }
+
+  // Show pagination container
+  if (paginationContainer) paginationContainer.classList.remove('d-none');
 
   // Left arrow
   const liPrev = document.createElement('li');
@@ -182,27 +199,47 @@ export function updateSortIndicators(currentSortBy, currentSortOrder) {
 }
 
 // Card modal function
-export function showCardModal(name, imageUrl, typeLine, set, rarity, price) {
-  // Create modal HTML
+export function showCardModal(name, setsJson, typeLine) {
+  const sets = JSON.parse(setsJson);
+  
+  // Create modal HTML with all printings
+  let printingsHtml = '';
+  sets.forEach((printing, index) => {
+    const priceDisplay = printing.price !== undefined ? '$' + printing.price.toLocaleString() : 'N/A';
+    const imageUrl = printing.image_uris?.normal || printing.image_uris?.large || '';
+    
+    printingsHtml += `
+      <div class="card-printing mb-3 p-3 border rounded" style="background: rgba(255,255,255,0.05);">
+        <div class="row">
+          <div class="col-md-4">
+            ${imageUrl ? `<img src="${imageUrl}" alt="${name}" class="img-fluid rounded" style="max-height: 200px;">` : '<div class="text-muted">No image available</div>'}
+          </div>
+          <div class="col-md-8">
+            <h6 class="text-primary">${name}</h6>
+            <p class="mb-1"><strong>Set:</strong> ${printing.set || 'Unknown'}</p>
+            <p class="mb-1"><strong>Rarity:</strong> ${printing.rarity || 'Unknown'}</p>
+            <p class="mb-1"><strong>Price:</strong> ${priceDisplay}</p>
+            <p class="mb-1"><strong>Artist:</strong> ${printing.artist || 'Unknown'}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
   const modalHtml = `
     <div class="modal fade" id="cardModal" tabindex="-1">
-      <div class="modal-dialog modal-lg">
+      <div class="modal-dialog modal-xl">
         <div class="modal-content bg-dark text-light">
           <div class="modal-header">
-            <h5 class="modal-title">${name}</h5>
+            <h5 class="modal-title">${name} - All Printings (${sets.length} sets)</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
-          <div class="modal-body text-center">
-            <img src="${imageUrl}" alt="${name}" class="img-fluid mb-3" style="max-height: 400px;">
-            <div class="row">
-              <div class="col-md-6">
-                <p><strong>Type:</strong> ${typeLine}</p>
-                <p><strong>Set:</strong> ${set}</p>
-              </div>
-              <div class="col-md-6">
-                <p><strong>Rarity:</strong> ${rarity}</p>
-                <p><strong>Price:</strong> ${price}</p>
-              </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <strong>Type:</strong> ${typeLine}
+            </div>
+            <div class="printings-container" style="max-height: 60vh; overflow-y: auto;">
+              ${printingsHtml}
             </div>
           </div>
         </div>
@@ -224,5 +261,18 @@ export function showCardModal(name, imageUrl, typeLine, set, rarity, price) {
   modal.show();
 }
 
-// Make showCardModal global
+// New function to show modal from table using stored data
+export function showCardModalFromTable(imgElement) {
+  const cardIndex = parseInt(imgElement.getAttribute('data-card-index'));
+  if (isNaN(cardIndex) || !currentTableCards[cardIndex]) {
+    console.error('Invalid card index or card data not found');
+    return;
+  }
+  
+  const card = currentTableCards[cardIndex];
+  showCardModal(card.name, JSON.stringify(card.sets), card.type_line);
+}
+
+// Make functions global
 window.showCardModal = showCardModal;
+window.showCardModalFromTable = showCardModalFromTable;
