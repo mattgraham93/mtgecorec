@@ -27,6 +27,10 @@ def cards():
 def visualizations():
    return render_template('visualizations.html')
 
+@app.route('/narrative')
+def narrative():
+   return render_template('narrative.html')
+
 @app.route('/analysis')
 def analysis():
    return send_from_directory(os.path.join(app.root_path, 'static'), 'card_explore.html', mimetype='text/html')
@@ -427,6 +431,19 @@ def api_cards_summary():
                '_id': '$_id.type',
                'count': {'$sum': 1}
             }}
+         ],
+         'sets': [
+            {'$group': {
+               '_id': '$set',
+               'unique_cards': {'$addToSet': '$name'}
+            }},
+            {'$project': {
+               '_id': 0,
+               'set': '$_id',
+               'unique_cards_count': {'$size': '$unique_cards'}
+            }},
+            {'$match': {'unique_cards_count': {'$gt': 30}}},  # Only sets with more than 30 cards
+            {'$sort': {'unique_cards_count': 1}}  # Ascending order
          ]
       }}
    ]
@@ -475,12 +492,18 @@ def api_cards_summary():
          t = 'Other'
       type_counts[t] = type_counts.get(t, 0) + doc['count']
 
-   print(f'Summary: total={total} unique cards, combined_aggregations_count={len(combined_aggregations)}, color_counts={color_counts}, type_counts={type_counts}')
+   # Set statistics
+   sets_data = result['sets'] if 'sets' in result else []
+   if sets_data:
+      print(f'First 3 sets: {sets_data[:3]}')
+
+   print(f'Summary: total={total} unique cards, combined_aggregations_count={len(combined_aggregations)}, color_counts={color_counts}, type_counts={type_counts}, sets_count={len(sets_data)}')
    return jsonify({
       'total': total,
       'combined_aggregations': combined_aggregations,
       'color_counts': color_counts,
-      'type_counts': type_counts
+      'type_counts': type_counts,
+      'sets': sets_data
    })
 
 

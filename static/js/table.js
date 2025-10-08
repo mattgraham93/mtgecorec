@@ -207,12 +207,13 @@ export function showCardModal(name, setsJson, typeLine) {
   sets.forEach((printing, index) => {
     const priceDisplay = printing.price !== undefined ? '$' + printing.price.toLocaleString() : 'N/A';
     const imageUrl = printing.image_uris?.normal || printing.image_uris?.large || '';
+    const largeImageUrl = printing.image_uris?.large || printing.image_uris?.normal || '';
     
     printingsHtml += `
       <div class="card-printing mb-3 p-3 border rounded" style="background: rgba(255,255,255,0.05);">
         <div class="row">
           <div class="col-md-4">
-            ${imageUrl ? `<img src="${imageUrl}" alt="${name}" class="img-fluid rounded" style="max-height: 200px;">` : '<div class="text-muted">No image available</div>'}
+            ${imageUrl ? `<img src="${imageUrl}" alt="${name}" class="img-fluid rounded card-printing-image" style="max-height: 200px; cursor: pointer;" data-large-image="${largeImageUrl}" data-printing-index="${index}">` : '<div class="text-muted">No image available</div>'}
           </div>
           <div class="col-md-8">
             <h6 class="text-primary">${name}</h6>
@@ -227,7 +228,7 @@ export function showCardModal(name, setsJson, typeLine) {
   });
 
   const modalHtml = `
-    <div class="modal fade" id="cardModal" tabindex="-1">
+    <div class="modal fade" id="cardModal" tabindex="-1" style="z-index: 1055;">
       <div class="modal-dialog modal-xl">
         <div class="modal-content bg-dark text-light">
           <div class="modal-header">
@@ -256,8 +257,22 @@ export function showCardModal(name, setsJson, typeLine) {
   // Add modal to body
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+  // Get modal element and create Bootstrap modal instance
+  const modalElement = document.getElementById('cardModal');
+  const modal = new bootstrap.Modal(modalElement);
+
+  // Add click handlers when modal is shown
+  modalElement.addEventListener('shown.bs.modal', function() {
+    document.querySelectorAll('.card-printing-image').forEach(img => {
+      img.addEventListener('click', function() {
+        const largeImageUrl = this.getAttribute('data-large-image');
+        const printingIndex = parseInt(this.getAttribute('data-printing-index'));
+        showLargeImageModal(name, largeImageUrl, sets[printingIndex]);
+      });
+    });
+  });
+
   // Show modal
-  const modal = new bootstrap.Modal(document.getElementById('cardModal'));
   modal.show();
 }
 
@@ -273,6 +288,47 @@ export function showCardModalFromTable(imgElement) {
   showCardModal(card.name, JSON.stringify(card.sets), card.type_line);
 }
 
+// New function to show large image modal
+export function showLargeImageModal(cardName, imageUrl, printing) {
+  const priceDisplay = printing.price !== undefined ? '$' + printing.price.toLocaleString() : 'N/A';
+  
+  const largeModalHtml = `
+    <div class="modal fade" id="largeImageModal" tabindex="-1" style="z-index: 1065;">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+          <div class="modal-header">
+            <h5 class="modal-title">${cardName} - ${printing.set || 'Unknown'}</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center">
+            ${imageUrl ? `<img src="${imageUrl}" alt="${cardName}" class="img-fluid" style="max-height: 70vh;">` : '<div class="text-muted">No image available</div>'}
+            <div class="mt-3">
+              <p class="mb-1"><strong>Set:</strong> ${printing.set || 'Unknown'}</p>
+              <p class="mb-1"><strong>Rarity:</strong> ${printing.rarity || 'Unknown'}</p>
+              <p class="mb-1"><strong>Price:</strong> ${priceDisplay}</p>
+              <p class="mb-1"><strong>Artist:</strong> ${printing.artist || 'Unknown'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Remove existing large modal if present
+  const existingLargeModal = document.getElementById('largeImageModal');
+  if (existingLargeModal) {
+    existingLargeModal.remove();
+  }
+
+  // Add large modal to body
+  document.body.insertAdjacentHTML('beforeend', largeModalHtml);
+
+  // Show large modal
+  const largeModal = new bootstrap.Modal(document.getElementById('largeImageModal'));
+  largeModal.show();
+}
+
 // Make functions global
 window.showCardModal = showCardModal;
 window.showCardModalFromTable = showCardModalFromTable;
+window.showLargeImageModal = showLargeImageModal;

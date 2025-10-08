@@ -1,21 +1,212 @@
 <!doctype html>
 <head>
-    <title>Hello Azure - Python Quickstart</title>
+    <title>MTG EcoRec - Magic Economy & Recommendations</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-purple.css') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+      .hero-section {
+        background: linear-gradient(135deg, #0d0d0d 0%, #1a0d2e 50%, #2d1b4a 100%);
+        padding: 4rem 0;
+        text-align: center;
+        border-bottom: 2px solid rgba(185, 131, 255, 0.3);
+      }
+      .hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: #B983FF;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 20px rgba(185, 131, 255, 0.5);
+      }
+      .hero-subtitle {
+        font-size: 1.4rem;
+        color: #F3F0FF;
+        margin-bottom: 2rem;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .feature-card {
+        background: rgba(185, 131, 255, 0.05);
+        border: 1px solid rgba(185, 131, 255, 0.2);
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 1rem 0;
+        transition: all 0.3s ease;
+      }
+      .feature-card:hover {
+        background: rgba(185, 131, 255, 0.1);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(185, 131, 255, 0.2);
+      }
+      .feature-icon {
+        font-size: 3rem;
+        color: #B983FF;
+        margin-bottom: 1rem;
+      }
+      .feature-title {
+        color: #B983FF;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+      .feature-text {
+        color: #F3F0FF;
+        line-height: 1.6;
+      }
+      .story-section {
+        padding: 4rem 0;
+        background: rgba(0,0,0,0.2);
+      }
+      .story-title {
+        color: #B983FF;
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .story-text {
+        color: #F3F0FF;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        margin-bottom: 2rem;
+      }
+      .highlight {
+        background: rgba(185, 131, 255, 0.2);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+      }
+      .cta-section {
+        padding: 4rem 0;
+        text-align: center;
+        background: linear-gradient(135deg, #2d1b4a 0%, #1a0d2e 100%);
+      }
+      .cta-button {
+        background: #2D1B4A;
+        border: 2px solid #B983FF;
+        padding: 1rem 2rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border-radius: 50px;
+        color: #FFFFFF;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(185, 131, 255, 0.15);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.3);
+      }
+      .cta-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(185, 131, 255, 0.25);
+        color: #fff;
+        text-decoration: none;
+        background: #9D4EDD;
+      }
+    </style>
 </head>
 <html>
   <body>
     {% include 'nav.html' %}
   <main style="margin-top:4.8rem;">
-      <div class="px-4 py-3 my-2 text-center">
-        <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/azure-icon.svg') }}" alt="Azure Logo" width="192" height="192"/>
-        <h1 class="display-6 fw-bold text-primary">Welcome to Azure</h1>
-      </div>
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="container">
+          <h1 class="hero-title">MTG EcoRec</h1>
+          <p class="hero-subtitle">
+            Navigate the Magic: The Gathering economy with data-driven insights and strategic recommendations
+          </p>
+          <a href="#story" class="cta-button">Explore the Economy</a>
+        </div>
+      </section>
 
-      <!-- Card database table moved to its own page. -->
+      <!-- Features Section -->
+      <section class="container my-5">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="feature-card">
+              <div class="feature-icon">📊</div>
+              <h3 class="feature-title">Market Analysis</h3>
+              <p class="feature-text">
+                Deep dive into card prices, trends, and market dynamics across thousands of Magic cards.
+              </p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="feature-card">
+              <div class="feature-icon">🎯</div>
+              <h3 class="feature-title">Strategic Recommendations</h3>
+              <p class="feature-text">
+                Get personalized card recommendations based on your budget, playstyle, and investment goals.
+              </p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="feature-card">
+              <div class="feature-icon">📈</div>
+              <h3 class="feature-title">Data-Driven Insights</h3>
+              <p class="feature-text">
+                Interactive visualizations reveal patterns in rarity, colors, sets, and price movements.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Story Section -->
+      <section id="story" class="story-section">
+        <div class="container">
+          <h2 class="story-title">The Story of MTG's Economy</h2>
+          <div class="row">
+            <div class="col-lg-8 mx-auto">
+              <p class="story-text">
+                Magic: The Gathering isn't just a game—it's a <span class="highlight">$2 billion global economy</span> where cardboard rectangles
+                can be worth more than gold. Since its release in 1993, MTG has evolved from a niche hobby into a sophisticated marketplace
+                where strategy, scarcity, and speculation intersect.
+              </p>
+              <p class="story-text">
+                Our analysis of <span class="highlight">20,000+ unique cards</span> reveals fascinating patterns: certain colors command premium prices,
+                rare cards from legendary sets appreciate dramatically, and market dynamics shift with each new release. But beneath the surface
+                lies a complex ecosystem where player preferences, tournament formats, and digital innovations constantly reshape value.
+              </p>
+              <p class="story-text">
+                Whether you're a competitive player seeking an edge, a collector building a legacy, or an investor exploring alternative assets,
+                understanding MTG's economy is crucial. Our tools help you navigate this fascinating world with confidence and insight.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Call to Action -->
+      <section class="cta-section">
+        <div class="container">
+          <h2 class="story-title">Ready to Explore?</h2>
+          <p class="hero-subtitle mb-4">
+            Discover what cards to acquire, when to buy, and how to build your collection strategically.
+          </p>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <a href="/narrative" class="cta-button d-block" style="position: relative;">
+                📖 Read the Economy Story
+                <span style="position: absolute; top: -8px; right: -8px; background: #9D4EDD; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">Coming Soon</span>
+              </a>
+            </div>
+            <div class="col-md-4 mb-3">
+              <a href="/visualizations" class="cta-button d-block">📊 Explore Visualizations</a>
+            </div>
+            <div class="col-md-4 mb-3">
+              <a href="/cards" class="cta-button d-block">🔍 Browse Card Database</a>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="cta-button d-block" style="background: linear-gradient(135deg, #666 0%, #999 100%); cursor: not-allowed; opacity: 0.6;">
+                📈 Advanced Analysis
+                <span style="display: block; font-size: 0.8rem; margin-top: 4px; opacity: 0.8;">Coming Soon</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
-      <!-- Card database table moved to its own page. -->
   </body>
 </html>

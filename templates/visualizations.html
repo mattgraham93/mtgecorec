@@ -270,6 +270,26 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+      
+      /* Modal z-index fixes */
+      .modal {
+        z-index: 1055 !important;
+      }
+      .modal-backdrop {
+        z-index: 1050 !important;
+      }
+      #cardModal {
+        z-index: 1055 !important;
+      }
+      #largeImageModal {
+        z-index: 1065 !important;
+      }
+      
+      /* Modal positioning - 10px below navbar */
+      .modal-dialog {
+        margin-top: 77px !important; /* 4.2rem navbar height + 10px */
+        margin-bottom: 0 !important;
+      }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+  <head>
+    <title>The Economy of Magic: The Gathering - MTGEC</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-purple.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+      body {
+        background: linear-gradient(135deg, #0d0d0d 0%, #1a0d2e 50%, #2d1b4a 100%);
+        color: #F3F0FF;
+        font-family: 'Georgia', serif;
+        line-height: 1.6;
+      }
+      .narrative-section {
+        margin: 4rem 0;
+        padding: 2rem;
+        background: rgba(185, 131, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid rgba(185, 131, 255, 0.2);
+      }
+      .narrative-text {
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+      }
+      .chart-container {
+        margin: 2rem 0;
+        background: rgba(0,0,0,0.3);
+        border-radius: 8px;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .section-title {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #B983FF;
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+      .intro {
+        text-align: center;
+        font-size: 1.3rem;
+        margin: 3rem 0;
+      }
+      .highlight {
+        background: rgba(185, 131, 255, 0.1);
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'nav.html' %}
+    <main style="margin-top:4.8rem;">
+      <div class="container my-5">
+        <div class="intro">
+          <h1 class="display-4 fw-bold text-primary mb-4">The Economy of Magic: The Gathering</h1>
+          <p class="lead">A deep dive into the market forces shaping one of the world's most beloved trading card games.</p>
+        </div>
+
+        <div class="narrative-section">
+          <h2 class="section-title">The Scale of the Market</h2>
+          <p class="narrative-text">
+            Magic: The Gathering isn't just a game—it's a global economy. With over <span class="highlight">20,000 unique cards</span> in circulation,
+            players trade, buy, and sell cards worth millions of dollars annually. But what drives the value of these cardboard rectangles?
+            Let's explore the data to understand the patterns behind the prices.
+          </p>
+          <div class="chart-container">
+            <div id="price-distribution-chart"></div>
+          </div>
+        </div>
+
+        <div class="narrative-section">
+          <h2 class="section-title">Color Wars: Which Colors Dominate?</h2>
+          <p class="narrative-text">
+            Every Magic card belongs to one or more colors, each representing different strategies and philosophies.
+            But in the marketplace, some colors command higher prices than others. Is it because certain colors are more powerful,
+            or is it a matter of supply and demand? Our data reveals fascinating insights into how color influences card value.
+          </p>
+          <div class="chart-container">
+            <div id="color-price-chart"></div>
+          </div>
+        </div>
+
+        <div class="narrative-section">
+          <h2 class="section-title">Color vs Type: The Strategic Matrix</h2>
+          <p class="narrative-text">
+            This heatmap shows the same card types featured in our main donut chart, revealing how each color distributes across the most common card types.
+            White dominates efficient Creatures, Blue shines in complex Instants and Artifacts, while Green focuses on powerful Creatures and advantage Enchantments.
+            The darker cells show where each color excels in Magic's strategic landscape.
+          </p>
+          <div class="chart-container">
+            <div id="rarity-type-chart"></div>
+          </div>
+        </div>
+
+        <div class="narrative-section">
+          <h2 class="section-title">The Power of Sets</h2>
+          <p class="narrative-text">
+            New sets are released regularly, each bringing fresh cards to the market. Some sets become legendary for their powerful cards,
+            while others fade into obscurity. What makes a set valuable? Let's examine how set release dates and card counts influence market dynamics.
+          </p>
+          <div class="chart-container">
+            <div id="set-timeline-chart"></div>
+          </div>
+        </div>
+
+        <div class="narrative-section">
+          <h2 class="section-title">Conclusion: The Future of MTG Economy</h2>
+          <p class="narrative-text">
+            As Magic continues to evolve with new sets, formats, and digital innovations, the economy remains a complex interplay
+            of nostalgia, strategy, and speculation. Understanding these patterns not only helps collectors and investors,
+            but also reveals the deeper mechanics of what makes trading card games so compelling.
+          </p>
+        </div>
+      </div>
+    </main>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="{{ url_for('static', filename='js/narrative.js') }}"></script>
+  </body>
+</html>
