@@ -8,7 +8,7 @@ import re
 from typing import List, Dict, Set, Optional, Tuple, Any
 from dataclasses import dataclass
 from collections import defaultdict, Counter
-from commander_model import CommanderCard, ColorIdentity
+from .commander_model import CommanderCard, ColorIdentity
 
 
 @dataclass

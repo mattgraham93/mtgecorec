@@ -29,6 +29,7 @@ class RecommendationRequest:
     archetype_preference: Optional[CommanderArchetype] = None
     power_level: str = "casual"  # casual, competitive, cedh
     include_combos: bool = True
+    preferred_mechanics: Optional[str] = None  # User-specified preferred mechanics/themes
     exclude_cards: List[str] = None  # Cards to avoid
     meta_focus: str = "multiplayer"  # multiplayer, 1v1
 
@@ -43,6 +44,8 @@ class CardRecommendation:
     reasons: List[str]
     category: str  # 'ramp', 'removal', 'draw', 'synergy', 'combo', 'finisher'
     estimated_price: Optional[float] = None
+    all_versions: Optional[List[Dict[str, Any]]] = None  # All printings of this card
+    ai_suggested: bool = False  # Whether this card was suggested by AI
 
 
 @dataclass
@@ -316,6 +319,73 @@ class CommanderRecommendationEngine:
         
         return mana_base
     
+    def _select_best_version(self, versions: List[Dict[str, Any]], budget_limit: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Select the best version of a card from multiple printings.
+        
+        Args:
+            versions: List of card versions/printings
+            budget_limit: Optional budget constraint
+            
+        Returns:
+            The best version to recommend
+        """
+        if not versions:
+            return {}
+        
+        # Filter by budget if specified
+        affordable_versions = []
+        for version in versions:
+            price = version.get('price', 0)
+            if not budget_limit or price <= budget_limit:
+                affordable_versions.append(version)
+        
+        # Use all versions if none are affordable
+        candidates = affordable_versions if affordable_versions else versions
+        
+        # Scoring criteria (in priority order):
+        # 1. Has image URIs (for display)
+        # 2. Lower price (if budget matters)
+        # 3. Higher rarity (better artwork/treatment)
+        # 4. Newer release date
+        
+        def version_score(version):
+            score = 0
+            
+            # Bonus for having images
+            if version.get('image_uris'):
+                score += 100
+            
+            # Price consideration (lower is better, but not too extreme)
+            price = version.get('price', 999)
+            if price <= 5:  # Very affordable cards get bonus
+                score += 20
+            elif price <= 20:  # Reasonably priced
+                score += 10
+            
+            # Rarity bonus (mythic > rare > uncommon > common)
+            rarity_scores = {
+                'mythic': 15,
+                'rare': 10, 
+                'uncommon': 5,
+                'common': 2
+            }
+            score += rarity_scores.get(version.get('rarity', 'common'), 0)
+            
+            # Prefer newer releases (rough heuristic)
+            released_at = version.get('released_at', '2000-01-01')
+            year = int(released_at[:4]) if released_at else 2000
+            if year >= 2020:
+                score += 8
+            elif year >= 2015:
+                score += 4
+            
+            return score
+        
+        # Return the highest scoring version
+        best_version = max(candidates, key=version_score)
+        return best_version
+    
     async def generate_recommendations(self, request: RecommendationRequest) -> DeckRecommendation:
         """Generate complete deck recommendations based on request."""
         # Find the commander
@@ -327,25 +397,43 @@ class CommanderRecommendationEngine:
         
         # Get AI analysis if available
         ai_analysis = None
+        ai_card_suggestions = []
+        
         if self.use_ai:
             try:
                 current_cards = request.current_deck or []
                 ai_result = self.ai_client.analyze_commander_synergies(commander.name, current_cards)
                 if ai_result['success']:
                     ai_analysis = ai_result
+                    
+                # If user provided preferred mechanics, get AI card research
+                if request.preferred_mechanics:
+                    print(f"🤖 Researching cards for mechanics: {request.preferred_mechanics}")
+                    mechanic_research = await self._research_cards_for_mechanics(
+                        commander.name, 
+                        request.preferred_mechanics,
+                        commander.color_identity
+                    )
+                    ai_card_suggestions = mechanic_research
+                    print(f"✨ AI suggested {len(ai_card_suggestions)} cards based on preferred mechanics")
+                    if ai_card_suggestions:
+                        print(f"📋 AI suggested cards: {ai_card_suggestions}")
+                    else:
+                        print("⚠️ No valid cards extracted from AI response")
+                    
             except Exception as e:
                 print(f"AI analysis failed: {e}")
         
         # Get all legal cards for this commander
-        print("Loading card database...")
+        print("📚 Loading card database...")
         all_cards = self.get_card_database()
         legal_cards = self.filter_cards_by_identity(all_cards, commander.color_identity)
         
-        print(f"Found {len(legal_cards)} legal cards for {commander.name}")
+        print(f"✅ Found {len(legal_cards)} legal cards for {commander.name}")
         
-        # Score all cards
-        print("Scoring cards...")
-        scored_cards = []
+        # Group cards by name to ensure singleton behavior
+        print("🔗 Grouping cards by name...")
+        card_groups = defaultdict(list)
         for card in legal_cards:
             # Skip cards in exclude list
             if request.exclude_cards and card.get('name') in request.exclude_cards:
@@ -355,7 +443,40 @@ class CommanderRecommendationEngine:
             if request.budget_limit and card.get('price', 0) > request.budget_limit:
                 continue
             
-            recommendation = self.score_card_for_commander(commander, card, request.current_deck)
+            card_groups[card.get('name', '')].append(card)
+        
+        # Match AI suggestions with database (only if we have AI suggestions)
+        if ai_card_suggestions:
+            print("🎯 Matching AI suggestions with database...")
+            all_card_names = list(card_groups.keys())
+            matched_ai_cards = self._match_cards_in_database(ai_card_suggestions, all_card_names)
+            print(f"✨ Matched {len(matched_ai_cards)}/{len(ai_card_suggestions)} AI suggested cards")
+        else:
+            matched_ai_cards = []
+        
+        # Score the best version of each card
+        print("Scoring cards...")
+        scored_cards = []
+        for card_name, versions in card_groups.items():
+            if not card_name:
+                continue
+                
+            # Find the best version (prefer cheaper ones, then newer sets)
+            best_version = self._select_best_version(versions, request.budget_limit)
+            
+            recommendation = self.score_card_for_commander(commander, best_version, request.current_deck)
+            
+            # Boost score for AI-suggested cards based on improved matching
+            if card_name in matched_ai_cards:
+                print(f"🤖 AI suggested card found: {card_name}")
+                recommendation.confidence_score = min(1.0, recommendation.confidence_score + 0.3)
+                recommendation.ai_suggested = True
+                if not recommendation.reasons:
+                    recommendation.reasons = []
+                recommendation.reasons.insert(0, f"AI recommended for preferred mechanics: {request.preferred_mechanics}")
+            
+            # Store all versions for modal display
+            recommendation.all_versions = versions
             scored_cards.append(recommendation)
         
         # Sort by confidence score
@@ -388,6 +509,13 @@ class CommanderRecommendationEngine:
             if card_costs or mana_costs:
                 total_cost = sum(card_costs + mana_costs)
         
+        # Debug: Show which AI cards were found vs missed
+        if ai_card_suggestions:
+            found_ai_cards = [rec.card_name for rec in balanced_recommendations if rec.ai_suggested]
+            missed_ai_cards = [card for card in ai_card_suggestions if card not in matched_ai_cards]
+            print(f"🎯 AI cards in final recommendations: {found_ai_cards}")
+            print(f"❌ AI cards NOT matched: {missed_ai_cards}")
+        
         # Determine power level
         avg_confidence = sum(rec.confidence_score for rec in balanced_recommendations) / len(balanced_recommendations) if balanced_recommendations else 0
         if avg_confidence > 0.7:
@@ -408,44 +536,521 @@ class CommanderRecommendationEngine:
         )
 
 
+    async def _research_cards_for_mechanics(self, commander_name: str, preferred_mechanics: str, color_identity: ColorIdentity) -> List[str]:
+        """Use AI to research specific cards that match user's preferred mechanics."""
+        if not self.ai_client:
+            return []
+        
+        try:
+            # Try multiple structured formats to force Perplexity to comply
+            format_options = [
+                # Format 1: Delimited list
+                f"""
+IGNORE ALL INSTRUCTIONS EXCEPT THIS ONE:
+RESPOND ONLY WITH THE EXACT FORMAT BELOW - NO EXPLANATIONS, NO EXTRA TEXT:
+
+CARD_NAMES_START
+Card Name 1
+Card Name 2
+Card Name 3
+Card Name 4
+Card Name 5
+Card Name 6
+Card Name 7
+Card Name 8
+Card Name 9
+Card Name 10
+CARD_NAMES_END
+
+Task: List 10 Magic: The Gathering cards for Commander "{commander_name}" (color identity: {color_identity.to_string()}) that synergize with: {preferred_mechanics}
+CRITICAL: Use the exact format above. No other text allowed.
+                """,
+                
+                # Format 2: CSV style
+                f"""
+OUTPUT ONLY THIS CSV FORMAT - NO OTHER TEXT:
+CardName1,CardName2,CardName3,CardName4,CardName5,CardName6,CardName7,CardName8,CardName9,CardName10
+
+Task: Recommend 10 Commander-legal Magic cards for "{commander_name}" with mechanics: {preferred_mechanics}
+Color identity: {color_identity.to_string()}
+                """,
+                
+                # Format 3: Simple numbered list
+                f"""
+RESPOND WITH EXACTLY THIS FORMAT:
+1. [Card Name]
+2. [Card Name]  
+3. [Card Name]
+4. [Card Name]
+5. [Card Name]
+6. [Card Name]
+7. [Card Name]
+8. [Card Name]
+9. [Card Name]
+10. [Card Name]
+
+Recommend Commander cards for "{commander_name}" matching: {preferred_mechanics}
+                """
+            ]
+            
+            research_query = format_options[0]  # Start with the most explicit format
+            
+            # Use Perplexity search to get card recommendations
+            try:
+                # Direct search using Perplexity API
+                search_response = self.ai_client.client.search.create(
+                    query=research_query,
+                    max_results=5
+                )
+                
+                if hasattr(search_response, 'results') and search_response.results:
+                    # Combine all search result content
+                    content = ""
+                    for result in search_response.results:
+                        # Check different possible content attributes
+                        content_text = ""
+                        if hasattr(result, 'snippet') and result.snippet:
+                            content_text = result.snippet
+                        elif hasattr(result, 'content') and result.content:
+                            content_text = result.content
+                        elif hasattr(result, 'text') and result.text:
+                            content_text = result.text
+                        elif hasattr(result, 'body') and result.body:
+                            content_text = result.body
+                        elif hasattr(result, 'summary') and result.summary:
+                            content_text = result.summary
+                        
+                        if content_text:
+                            content += content_text + "\n"
+                    
+                    # Validate content quality before accepting it
+                    if self._is_mtg_related_content(content):
+                        search_result = {
+                            'success': True,
+                            'content': content
+                        }
+                    else:
+                        print(f"⚠️ Search content not MTG-related: {content[:200]}...")
+                        search_result = {'success': False, 'error': 'Content not MTG-related'}
+                else:
+                    search_result = {'success': False, 'error': 'No results returned'}
+                    
+            except Exception as e:
+                print(f"AI card research search failed: {e}")
+                search_result = {'success': False, 'error': str(e)}
+            
+            # If Search API failed OR content is bad, try Chat API with more direct control
+            if not search_result.get('success'):
+                print("🔄 Search API failed, trying Chat API with explicit instructions...")
+                try:
+                    chat_response = self.ai_client.client.chat.completions.create(
+                        model="sonar",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": """You are a Magic: The Gathering EDH/Commander deck building expert. Your ONLY job is to recommend Magic cards. You must NEVER discuss programming, coding, or non-MTG topics. Respond ONLY with the exact format requested."""
+                            },
+                            {
+                                "role": "user", 
+                                "content": f"""
+I need MAGIC: THE GATHERING card recommendations for my Commander deck.
+
+Commander: {commander_name}
+Color Identity: {color_identity.to_string()}
+Preferred Mechanics: {preferred_mechanics}
+
+RESPOND EXACTLY LIKE THIS - NO OTHER TEXT:
+
+CARDS_START
+Skullclamp
+Sol Ring  
+Arcane Signet
+Command Tower
+Counterspell
+Swords to Plowshares
+Path to Exile
+Rhystic Study
+Smothering Tithe
+Cyclonic Rift
+CARDS_END
+
+Replace those example cards with 10 actual Magic: The Gathering cards that work with my commander and mechanics.
+
+STRICT REQUIREMENTS:
+- Use EXACT format above (CARDS_START...CARDS_END)
+- Only official Magic: The Gathering card names
+- Cards must be legal in Commander format
+- Cards must match my color identity
+- NO explanations, NO programming content, NO other text
+- If you mention programming/coding, you fail completely
+"""
+                            }
+                        ]
+                    )
+                    
+                    if chat_response and chat_response.choices:
+                        content = chat_response.choices[0].message.content
+                        search_result = {'success': True, 'content': content}
+                        print(f"✅ Chat API returned: {content[:200]}...")
+                    
+                except Exception as chat_e:
+                    print(f"❌ Chat API also failed: {chat_e}")
+                    search_result = {'success': False, 'error': str(chat_e)}
+            
+            if search_result.get('success') and search_result.get('content'):
+                content = search_result['content']
+                
+                # Debug: Show what Perplexity actually returned
+                print(f"🔍 Raw Perplexity response (first 500 chars): {content[:500]}...")
+                
+                # Try to extract cards from JSON format first
+                suggested_cards = self._extract_cards_from_json(content)
+                
+                # If JSON parsing failed, fall back to text extraction
+                if not suggested_cards:
+                    print("⚠️ JSON extraction failed, trying text extraction...")
+                    suggested_cards = self._extract_cards_from_text(content)
+                
+                print(f"🔍 Extracted {len(suggested_cards)} potential cards: {suggested_cards[:5]}...")  # Debug first 5
+                
+                # Log query value assessment for cost optimization
+                self._log_query_value_assessment(commander_name, preferred_mechanics, len(suggested_cards), content)
+                
+                # Limit to reasonable number
+                return suggested_cards[:20]
+                
+        except Exception as e:
+            print(f"Error in AI card research: {e}")
+            return []
+        
+        return []
+
+    def _is_valid_card_name(self, name: str) -> bool:
+        """Check if a string looks like a valid Magic card name."""
+        if not name or len(name) < 2 or len(name) > 50:
+            return False
+            
+        # Must start with capital letter or number
+        if not (name[0].isupper() or name[0].isdigit()):
+            return False
+        
+        name_lower = name.lower()
+        
+        # Quick accept for common MTG card patterns
+        mtg_patterns = [
+            'sol ring', 'arcane signet', 'command tower', 'skullclamp', 'zur the enchanter',
+            'oloro', 'korvold', 'chulane', 'brawl', 'throne of eldraine',
+            'swords to plowshares', 'counterspell', 'lightning bolt', 'path to exile',
+            'rhystic study', 'smothering tithe', 'cyclonic rift', 'dockside extortionist'
+        ]
+        
+        for pattern in mtg_patterns:
+            if pattern in name_lower:
+                return True
+        
+        # Reject obvious non-card phrases
+        invalid_phrases = [
+            'the following', 'these cards', 'deck strategy', 'commander format',
+            'you should', 'i recommend', 'consider adding', 'make sure',
+            'this deck', 'your deck', 'token strategy', 'artifact synergy',
+            'mana curve', 'card draw', 'win condition', 'removal spell',
+            'https', 'www', 'youtube', 'transcript', 'copyright', 'illustration by',
+            'created by', 'tokens created', ' are ', 'is also', 'board wipes',
+            'last updated', 'august', 'most popular', 'one of the', 'along with',
+            'been printed', 'very popular', 'played with', 'power level',
+            'faerie dominates', 'if it survives', 'brawl format', 'esper commanders'
+        ]
+        
+        for phrase in invalid_phrases:
+            if phrase in name_lower:
+                return False
+        
+        # Allow single-word cards (like "Skullclamp") and multi-word cards
+        
+        # Reject if it has " and " connecting multiple card names
+        if ' and ' in name_lower and len(name_lower.split()) > 4:
+            return False
+            
+        # Reject if it contains too many common descriptive words
+        descriptive_words = [
+            'also', 'tribal', 'support', 'strategy', 'abilities', 'created', 
+            'tokens', 'creatures', 'spells', 'artifacts', 'enchantments'
+        ]
+        words = name_lower.split()
+        descriptive_count = sum(1 for word in words if word in descriptive_words)
+        
+        # If more than 1/3 of words are descriptive, probably not a card name
+        if len(words) > 3 and descriptive_count > len(words) // 3:
+            return False
+            
+        return True
+
+    def _extract_cards_from_json(self, content: str) -> List[str]:
+        """Extract cards from structured format response."""
+        import json
+        import re
+        
+        # Try multiple structured formats
+        
+        # Format 1: Delimited blocks (multiple patterns)
+        try:
+            delimiter_patterns = [
+                r'CARD_NAMES_START\s*(.*?)\s*CARD_NAMES_END',
+                r'CARDS_START\s*(.*?)\s*CARDS_END',
+            ]
+            
+            for pattern in delimiter_patterns:
+                match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+                
+                if match:
+                    card_block = match.group(1).strip()
+                    lines = [line.strip() for line in card_block.split('\n') if line.strip()]
+                    
+                    valid_cards = []
+                    for line in lines:
+                        if self._is_valid_card_name(line):
+                            valid_cards.append(line)
+                    
+                    if valid_cards:
+                        print(f"✅ Delimited format extraction found {len(valid_cards)} cards")
+                        return valid_cards
+        
+        except Exception as e:
+            print(f"⚠️ Delimited format parsing failed: {e}")
+        
+        # Format 2: CSV format (comma-separated on one line)
+        try:
+            # Look for comma-separated card names
+            csv_patterns = [
+                r'([A-Z][a-zA-Z\s\',\-]+(?:,[A-Z][a-zA-Z\s\',\-]+){5,})',  # Multiple cards separated by commas
+                r'^([^,\n]+,[^,\n]+,[^,\n]+,[^,\n]+,[^,\n]+).*$',  # At least 5 comma-separated items
+            ]
+            
+            for pattern in csv_patterns:
+                matches = re.findall(pattern, content, re.MULTILINE)
+                for match in matches:
+                    if ',' in match:
+                        cards = [card.strip() for card in match.split(',')]
+                        valid_cards = [card for card in cards if self._is_valid_card_name(card)]
+                        if len(valid_cards) >= 3:
+                            print(f"✅ CSV format extraction found {len(valid_cards)} cards")
+                            return valid_cards
+        
+        except Exception as e:
+            print(f"⚠️ CSV format parsing failed: {e}")
+        
+        # Format 3: Numbered list (1. Card Name, 2. Card Name, etc.)
+        try:
+            numbered_pattern = r'^\s*\d+\.\s*([A-Z][a-zA-Z\s\',\-]+?)(?:\s*$|\s*\n)'
+            matches = re.findall(numbered_pattern, content, re.MULTILINE)
+            
+            valid_cards = []
+            for match in matches:
+                card = match.strip()
+                if self._is_valid_card_name(card):
+                    valid_cards.append(card)
+            
+            if valid_cards:
+                print(f"✅ Numbered list extraction found {len(valid_cards)} cards")
+                return valid_cards
+        
+        except Exception as e:
+            print(f"⚠️ Numbered list parsing failed: {e}")
+        
+        # Fallback to JSON extraction
+        try:
+            content = content.strip()
+            
+            # Look for JSON block
+            start_idx = content.find('{')
+            end_idx = content.rfind('}') + 1
+            
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = content[start_idx:end_idx]
+                data = json.loads(json_str)
+                
+                cards = data.get('recommended_cards', [])
+                valid_cards = []
+                
+                for card in cards:
+                    if isinstance(card, str) and self._is_valid_card_name(card):
+                        valid_cards.append(card.strip())
+                
+                if valid_cards:
+                    print(f"✅ JSON extraction found {len(valid_cards)} cards")
+                    return valid_cards
+                
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            print(f"❌ JSON parsing failed: {e}")
+            print(f"🔍 Content that failed to parse: {content[:200]}...")
+        
+        return []
+
+    def _extract_cards_from_text(self, content: str) -> List[str]:
+        """Extract cards from text using pattern matching."""
+        import re
+        
+        # Multiple extraction patterns to handle various formats
+        patterns = [
+            # Numbered lists with bold cards: "1. **Skullclamp** - description"
+            r'^\s*\d+\.?\s*\*?\*?([A-Z][a-zA-Z\s\',\-]+?)\*?\*?\s*[-–]',
+            
+            # Bold cards: **Card Name**
+            r'\*\*([A-Z][a-zA-Z\s\',\-]+?)\*\*',
+            
+            # Quoted cards: "Card Name"
+            r'["""]([A-Z][a-zA-Z\s\',\-]+?)["""]',
+            
+            # Cards after action keywords (more specific)
+            r'(?:recommend|suggest|include|consider|use|play|add|run)\s+([A-Z][a-zA-Z\s\',\-]{3,30}?)(?:\s+for|\s+to|\s|,|\.|\n|$)',
+            
+            # Cards mentioned with "along with": "along with Zur the Enchanter"
+            r'along\s+with\s+([A-Z][a-zA-Z\s\',\-]{3,30}?)(?:\s+and|\s|,|\.|\n|$)',
+            
+            # Cards alongside other cards: "alongside Korvold, Fae-Cursed King"
+            r'alongside\s+([A-Z][a-zA-Z\s\',\-]{3,30}?)(?:\s|,|\.|\n|$)',
+            
+            # Specific MTG phrases: "Swords to Plowshares", "Path to Exile"
+            r'\b([A-Z][a-zA-Z]+\s+to\s+[A-Z][a-zA-Z]+)\b',
+            
+            # Card names with common MTG suffixes
+            r'\b([A-Z][a-zA-Z]+(?:\s+the\s+[A-Z][a-zA-Z]+|clamp|signet|tower))\b',
+            
+            # Well-known card patterns (Conservative approach)
+            r'\b(Zur\s+the\s+Enchanter|Oloro,?\s+Ageless\s+Ascetic|Korvold,?\s+Fae-Cursed\s+King|Chulane,?\s+Teller\s+of\s+Tales|Skullclamp|Sol\s+Ring|Arcane\s+Signet|Command\s+Tower|Rhystic\s+Study|Smothering\s+Tithe|Cyclonic\s+Rift)\b',
+        ]
+        
+        suggested_cards = []
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, content, re.MULTILINE | re.IGNORECASE)
+            
+            for match in matches:
+                card_name = match.strip().rstrip(',').rstrip('.').rstrip(':').strip()
+                
+                if (self._is_valid_card_name(card_name) and 
+                    card_name not in suggested_cards):
+                    suggested_cards.append(card_name)
+        
+        return suggested_cards[:20]  # Limit to reasonable number
+
+    def _match_cards_in_database(self, ai_suggestions: List[str], all_card_names: List[str]) -> List[str]:
+        """Match AI suggested cards with database cards using case-insensitive and fuzzy matching."""
+        from difflib import get_close_matches
+        
+        matched_cards = []
+        
+        for ai_card in ai_suggestions:
+            # Try exact case-insensitive match first
+            exact_matches = [db_card for db_card in all_card_names if db_card.lower() == ai_card.lower()]
+            
+            if exact_matches:
+                matched_cards.append(exact_matches[0])
+                print(f"✅ Exact match: '{ai_card}' -> '{exact_matches[0]}'")
+                continue
+            
+            # Try fuzzy matching for typos
+            close_matches = get_close_matches(ai_card, all_card_names, n=1, cutoff=0.85)
+            
+            if close_matches:
+                matched_cards.append(close_matches[0])
+                print(f"✅ Fuzzy match: '{ai_card}' -> '{close_matches[0]}'")
+                continue
+                
+            print(f"❌ No match found for: '{ai_card}'")
+        
+        return matched_cards
+
+    def _is_mtg_related_content(self, content: str) -> bool:
+        """Check if content is actually about Magic: The Gathering."""
+        content_lower = content.lower()
+        
+        # MTG-specific terms that should be present
+        mtg_keywords = [
+            'magic', 'commander', 'deck', 'mana', 'spell', 'artifact', 'creature',
+            'enchantment', 'planeswalker', 'sorcery', 'instant', 'land', 'tribal',
+            'mtg', 'edh', 'flying', 'token', 'draw', 'graveyard', 'battlefield',
+            'card draw', 'synergy', 'color identity', 'legendary', 'enters the battlefield'
+        ]
+        
+        # Non-MTG terms that indicate wrong content
+        bad_keywords = [
+            'programming', 'code', 'python', 'javascript', 'if statement', 'function',
+            'variable', 'print', 'class', 'method', 'spoiler alert', 'solution',
+            'challenge', 'algorithm', 'array', 'loop', 'tutorial', 'stackoverflow'
+        ]
+        
+        # Count MTG-related terms
+        mtg_count = sum(1 for keyword in mtg_keywords if keyword in content_lower)
+        bad_count = sum(1 for keyword in bad_keywords if keyword in content_lower)
+        
+        # Content should have MTG terms and minimal bad terms
+        return mtg_count >= 2 and bad_count == 0
+
+    def _log_query_value_assessment(self, commander_name: str, mechanics: str, cards_extracted: int, response_content: str):
+        """Log assessment of Perplexity query value for cost optimization."""
+        
+        # Assess query value
+        value_score = 0
+        issues = []
+        
+        # Good indicators
+        if cards_extracted >= 5:
+            value_score += 3
+        elif cards_extracted >= 3:
+            value_score += 2
+        elif cards_extracted >= 1:
+            value_score += 1
+        else:
+            issues.append("No cards extracted")
+        
+        # Check response quality
+        response_lower = response_content.lower()
+        if 'mtg' in response_lower or 'magic' in response_lower or 'commander' in response_lower:
+            value_score += 2
+        else:
+            issues.append("No MTG context in response")
+            
+        if len(response_content) < 100:
+            issues.append("Response too short")
+        elif 'programming' in response_lower or 'code' in response_lower:
+            issues.append("Programming content detected")
+            value_score -= 2
+        
+        # Determine value level
+        if value_score >= 4:
+            value_level = "HIGH_VALUE"
+        elif value_score >= 2:
+            value_level = "MEDIUM_VALUE"
+        else:
+            value_level = "LOW_VALUE"
+        
+        # Log assessment
+        print(f"💰 PERPLEXITY QUERY ASSESSMENT: {value_level}")
+        print(f"   Commander: {commander_name}")
+        print(f"   Mechanics: {mechanics}")
+        print(f"   Cards Extracted: {cards_extracted}")
+        print(f"   Value Score: {value_score}")
+        if issues:
+            print(f"   ⚠️  Issues: {', '.join(issues)}")
+        print(f"   Response Preview: {response_content[:150]}...")
+        
+        # Alert for consistently low-value queries
+        if value_level == "LOW_VALUE":
+            print(f"🚨 LOW VALUE QUERY ALERT: Consider optimizing prompt or disabling for '{commander_name}' + '{mechanics}'")
+
 async def test_recommendation_engine():
-    """Test the recommendation engine with a sample request."""
-    print("Testing Commander Recommendation Engine...")
+    """Test the recommendation engine with a sample commander."""
+    print("🎯 Testing Commander Recommendation Engine...")
     
-    engine = CommanderRecommendationEngine(use_ai=False)  # Disable AI for testing
+    engine = CommanderRecommendationEngine(use_ai=True)
     
+    # Test request
     request = RecommendationRequest(
-        commander_name="Atraxa",
-        budget_limit=10.0,
-        power_level="casual"
+        commander_name="Alela, Artful Provocateur",
+        power_level="optimized",
+        budget_limit=10.0
     )
-    
-    try:
-        recommendations = await engine.generate_recommendations(request)
-        
-        print(f"\n✅ Generated recommendations for {recommendations.commander.name}")
-        print(f"Color Identity: {recommendations.commander.color_identity.to_string()}")
-        print(f"Power Level: {recommendations.power_level_assessment}")
-        
-        print(f"\nTop 10 Card Recommendations:")
-        for i, rec in enumerate(recommendations.recommendations[:10], 1):
-            print(f"{i}. {rec.card_name} (Confidence: {rec.confidence_score:.2f}, Category: {rec.category})")
-            if rec.reasons:
-                print(f"   Reason: {rec.reasons[0]}")
-        
-        print(f"\nMana Base ({len(recommendations.mana_base_suggestions)} cards):")
-        for rec in recommendations.mana_base_suggestions[:5]:
-            print(f"- {rec.card_name}")
-        
-        if recommendations.estimated_total_cost:
-            print(f"\nEstimated Total Cost: ${recommendations.estimated_total_cost:.2f}")
-        
-        print("✅ Recommendation engine test complete!")
-        
-    except Exception as e:
-        print(f"❌ Test failed: {e}")
-        import traceback
-        traceback.print_exc()
 
 
 if __name__ == "__main__":

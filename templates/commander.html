@@ -95,6 +95,43 @@
             margin-right: 8px;
         }
         
+        .versions-badge {
+            background: rgba(255, 165, 0, 0.2);
+            color: #FFA500;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+        
+        .card-image-small img {
+            transition: transform 0.2s ease;
+        }
+        
+        .recommendation-card[onclick]:hover {
+            cursor: pointer;
+            background: rgba(45, 27, 74, 1);
+            border-color: rgba(185, 131, 255, 0.7);
+        }
+        
+        .recommendation-card[onclick]:hover .card-image-small img {
+            transform: scale(1.05);
+        }
+        
+        .modal .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(185, 131, 255, 0.5);
+            box-shadow: 0 8px 16px rgba(185, 131, 255, 0.2);
+        }
+        
+        .modal .card img {
+            transition: transform 0.2s ease;
+        }
+        
+        .modal .card:hover img {
+            transform: scale(1.02);
+        }
+        
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -122,6 +159,28 @@
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1rem;
+        }
+        
+        /* AI Enhancement Animations */
+        @keyframes pulse {
+            0% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0.6; transform: scale(1); }
+        }
+        
+        @keyframes aiGlow {
+            0% { box-shadow: 0 0 5px rgba(78, 205, 196, 0.3); }
+            50% { box-shadow: 0 0 15px rgba(78, 205, 196, 0.6), 0 0 25px rgba(78, 205, 196, 0.4); }
+            100% { box-shadow: 0 0 5px rgba(78, 205, 196, 0.3); }
+        }
+        
+        .recommendation-card {
+            transition: all 0.3s ease;
+        }
+        
+        .recommendation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(185, 131, 255, 0.15);
         }
     </style>
 </head>
@@ -180,10 +239,56 @@
                                 <option value="competitive">Competitive</option>
                             </select>
                         </div>
+
+                        <!-- Mechanic/Theme Preferences -->
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #F3F0FF;">Preferred Mechanics/Themes</label>
+                            <div class="mb-2">
+                                <textarea id="preferred-mechanics" 
+                                          class="form-control" 
+                                          rows="3"
+                                          placeholder="E.g., 'Flying creatures and artifacts', 'Graveyard recursion', 'Token generation', 'Counters and proliferate'"
+                                          style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF; resize: vertical;"></textarea>
+                                <small style="color: #888; font-size: 0.8rem;">
+                                    💡 Describe the mechanics, themes, or strategies you enjoy playing. This will guide AI card research.
+                                </small>
+                            </div>
+                            
+                            <!-- Quick Theme Buttons -->
+                            <div class="mb-2">
+                                <small style="color: #B983FF; display: block; margin-bottom: 8px;">Quick Select:</small>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Flying and artifacts')" 
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                        ✈️ Flying + Artifacts
+                                    </button>
+                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Token generation')"
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                        🪙 Tokens
+                                    </button>
+                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Graveyard value')"
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                        ⚱️ Graveyard
+                                    </button>
+                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Spellslinger')"
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                        🔮 Spells
+                                    </button>
+                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Counters and proliferate')"
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                        ➕ Counters
+                                    </button>
+                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Tribal synergies')"
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                        👥 Tribal
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         
                         <button id="get-recommendations-btn" class="btn btn-primary w-100" 
                                 style="background: #2D1B4A; border-color: #B983FF;">
-                            Get Recommendations
+                            🔍 Get AI-Powered Recommendations
                         </button>
                     </div>
                 </div>
@@ -191,12 +296,45 @@
                 <!-- Recommendations Panel -->
                 <div class="col-md-8">
                     <div id="recommendations-panel" style="display: none;">
-                        <h3 style="color: #B983FF;">Deck Recommendations</h3>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 style="color: #B983FF; margin: 0;">Deck Recommendations</h3>
+                            <div class="export-buttons">
+                                <button id="export-scryfall-btn" class="btn btn-sm me-2" 
+                                        style="background: rgba(185,131,255,0.2); border-color: #B983FF; color: #B983FF;"
+                                        onclick="exportToScryfall()">
+                                    📋 Export to Scryfall
+                                </button>
+                                <button id="export-text-btn" class="btn btn-sm" 
+                                        style="background: rgba(185,131,255,0.2); border-color: #B983FF; color: #B983FF;"
+                                        onclick="exportToText()">
+                                    📝 Export List
+                                </button>
+                            </div>
+                        </div>
                         
                         <!-- AI Analysis Section -->
                         <div id="ai-analysis-section" style="display: none;">
                             <div class="ai-analysis">
-                                <h5 style="color: #00FF00;">🤖 AI Strategic Analysis</h5>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 style="color: #00FF00; margin: 0;">🤖 AI Strategic Analysis</h5>
+                                    <button id="generate-summary-btn" class="btn btn-sm" 
+                                            style="background: rgba(0, 255, 0, 0.2); border-color: #00FF00; color: #00FF00;"
+                                            onclick="generateAnalysisSummary()">
+                                        📊 Generate Executive Summary
+                                    </button>
+                                </div>
+                                
+                                <!-- Analysis Summary Section -->
+                                <div id="analysis-summary" style="display: none; margin-bottom: 20px;">
+                                    <div style="background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.3); border-radius: 8px; padding: 15px;">
+                                        <h6 style="color: #00FF00; margin-bottom: 10px;">📋 Executive Summary</h6>
+                                        <div id="analysis-summary-content" style="color: #F3F0FF;">
+                                            <div class="loading-spinner"></div> Generating summary...
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Detailed Analysis -->
                                 <div id="ai-analysis-content">
                                     <div class="loading-spinner"></div> Loading AI analysis...
                                 </div>
@@ -261,6 +399,23 @@
         </div>
     </main>
 
+    <!-- Card Versions Modal -->
+    <div class="modal fade" id="cardVersionsModal" tabindex="-1" aria-labelledby="cardVersionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content" style="background: #1A0B2E; border: 1px solid rgba(185, 131, 255, 0.3);">
+                <div class="modal-header" style="border-bottom: 1px solid rgba(185, 131, 255, 0.3);">
+                    <h5 class="modal-title" id="cardVersionsModalLabel" style="color: #B983FF;">Card Versions</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="card-versions-content">
+                        <!-- Card versions will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script>
         let selectedCommander = null;
@@ -307,6 +462,8 @@
                     `<span class="mana-symbol mana-${color}">${color}</span>`
                 ).join('');
                 
+                const manaCost = formatManaCost(commander.mana_cost || '');
+                
                 return `
                     <div class="commander-card" onclick="selectCommander('${commander.name}')">
                         <div class="d-flex align-items-center">
@@ -315,8 +472,8 @@
                                 <div class="color-identity">${colorSymbols}</div>
                                 <small style="color: #888;">${commander.type_line}</small>
                             </div>
-                            <div>
-                                ${commander.mana_cost || ''}
+                            <div class="mana-cost-display">
+                                ${manaCost}
                             </div>
                         </div>
                     </div>
@@ -348,6 +505,7 @@
             
             const budget = document.getElementById('budget-select').value;
             const powerLevel = document.getElementById('power-select').value;
+            const preferredMechanics = document.getElementById('preferred-mechanics').value.trim();
             
             // Show loading
             document.getElementById('loading-recommendations').style.display = 'block';
@@ -362,6 +520,10 @@
                 
                 if (budget) {
                     params.append('budget', budget);
+                }
+                
+                if (preferredMechanics) {
+                    params.append('preferred_mechanics', preferredMechanics);
                 }
                 
                 const response = await fetch(`/api/commanders/${encodeURIComponent(selectedCommander)}/recommendations?${params}`);
@@ -402,27 +564,71 @@
             document.getElementById('power-level').textContent = data.power_level || 'Analyzing power level...';
             document.getElementById('total-cost').textContent = data.total_cost ? `Est. Cost: $${data.total_cost.toFixed(2)}` : '';
             
+            // Sort recommendations to prioritize AI picks
+            const sortedRecommendations = [...data.recommendations].sort((a, b) => {
+                // AI suggested cards first
+                if (a.ai_suggested && !b.ai_suggested) return -1;
+                if (!a.ai_suggested && b.ai_suggested) return 1;
+                // Then by confidence
+                return b.confidence - a.confidence;
+            });
+            
             // Display main deck recommendations
             const mainDeckDiv = document.getElementById('main-deck-recommendations');
-            mainDeckDiv.innerHTML = data.recommendations.map(rec => {
+            mainDeckDiv.innerHTML = sortedRecommendations.map(rec => {
                 const confidencePercent = (rec.confidence * 100).toFixed(0);
+                const hasMultipleVersions = rec.all_versions && rec.all_versions.length > 1;
+                // Better image fallback handling
+                const imageUris = rec.primary_version.image_uris || {};
+                const primaryImage = imageUris.normal || imageUris.large || imageUris.small || '';
                 
                 return `
-                    <div class="recommendation-card">
-                        <div class="d-flex justify-content-between align-items-start">
+                    <div class="recommendation-card" ${hasMultipleVersions ? `onclick="showCardVersions('${rec.name}', ${JSON.stringify(rec.all_versions).replace(/"/g, '&quot;')})"` : ''} style="${rec.ai_suggested ? 'border: 2px solid rgba(78,205,196,0.4); box-shadow: 0 0 15px rgba(78,205,196,0.2);' : ''}">
+                        <div class="d-flex align-items-start">
+                            ${primaryImage ? `
+                                <div class="card-image-small me-3" style="position: relative;">
+                                    <img src="${primaryImage}" alt="${rec.name}" style="width: 60px; height: 84px; border-radius: 6px; object-fit: cover;" 
+                                         onerror="this.parentElement.innerHTML='<div style=\\'width: 60px; height: 84px; border-radius: 6px; background: rgba(185,131,255,0.1); display: flex; align-items: center; justify-content: center; color: #888; font-size: 10px; text-align: center;\\'>No Image</div>';">
+                                    ${rec.ai_suggested ? `
+                                        <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid #fff;">
+                                            <span style="font-size: 10px;">🤖</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : `
+                                <div class="card-image-small me-3" style="width: 60px; height: 84px; border-radius: 6px; background: ${rec.ai_suggested ? 'linear-gradient(135deg, rgba(78,205,196,0.1), rgba(185,131,255,0.1))' : 'rgba(185,131,255,0.1)'}; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid ${rec.ai_suggested ? 'rgba(78,205,196,0.3)' : 'rgba(185,131,255,0.3)'}; ${rec.ai_suggested ? 'animation: aiGlow 3s infinite;' : ''}">
+                                    <div style="text-align: center; color: ${rec.ai_suggested ? '#4ECDC4' : '#888'};">
+                                        <div style="font-size: ${rec.ai_suggested ? '20px' : '16px'}; margin-bottom: 2px;">${rec.ai_suggested ? '🤖' : '🃏'}</div>
+                                        <div style="font-size: 9px; font-weight: bold;">${rec.ai_suggested ? 'AI PICK' : 'NO IMG'}</div>
+                                    </div>
+                                </div>
+                            `}
                             <div class="flex-grow-1">
-                                <strong style="color: #F3F0FF;">${rec.name}</strong>
-                                <span class="category-badge">${rec.category}</span>
-                                ${rec.estimated_price ? `<small style="color: #B983FF;">$${rec.estimated_price.toFixed(2)}</small>` : ''}
-                                <div style="font-size: 0.9rem; color: #CCC; margin-top: 4px;">
-                                    ${rec.reasons.slice(0, 2).join(' • ')}
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <strong style="color: #F3F0FF;">${rec.name}</strong>
+                                            ${rec.ai_suggested ? '<span style="color: #4ECDC4; font-size: 16px; animation: pulse 2s infinite;">🤖</span>' : ''}
+                                        </div>
+                                        <span class="category-badge">${rec.category}</span>
+                                        ${hasMultipleVersions ? '<span class="versions-badge">📚 Multiple Versions</span>' : ''}
+                                        <br>
+                                        <small style="color: #B983FF;">
+                                            ${rec.primary_version.set_name} (${rec.primary_version.set.toUpperCase()})
+                                            ${rec.estimated_price ? ` • $${rec.estimated_price.toFixed(2)}` : ''}
+                                        </small>
+                                        <div style="font-size: 0.9rem; color: #CCC; margin-top: 4px;">
+                                            ${rec.reasons.slice(0, 2).join(' • ')}
+                                        </div>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right; color: #B983FF;">
+                                        ${confidencePercent}%
+                                        ${rec.ai_suggested ? '<div style="font-size: 11px; color: #4ECDC4; margin-top: 2px;">AI Enhanced</div>' : ''}
+                                    </div>
                                 </div>
-                                <div class="confidence-bar">
-                                    <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
-                                </div>
-                            </div>
-                            <div style="text-align: right; color: #B983FF;">
-                                ${confidencePercent}%
                             </div>
                         </div>
                     </div>
@@ -431,21 +637,328 @@
             
             // Display mana base
             const manaBaseDiv = document.getElementById('mana-base-recommendations');
-            manaBaseDiv.innerHTML = data.mana_base.map(rec => `
-                <div class="recommendation-card">
-                    <div class="d-flex justify-content-between">
-                        <strong style="color: #F3F0FF;">${rec.name}</strong>
-                        <span class="category-badge">${rec.category}</span>
-                        ${rec.estimated_price ? `<small style="color: #B983FF;">$${rec.estimated_price.toFixed(2)}</small>` : ''}
+            manaBaseDiv.innerHTML = data.mana_base.map(rec => {
+                const hasMultipleVersions = rec.all_versions && rec.all_versions.length > 1;
+                const imageUris = rec.primary_version?.image_uris || rec.primary_version?.imageUris;
+                const primaryImage = imageUris?.normal || imageUris?.large || imageUris?.small || '';
+                
+                return `
+                    <div class="recommendation-card" ${hasMultipleVersions ? `onclick="showCardVersions('${rec.name}', ${JSON.stringify(rec.all_versions).replace(/"/g, '&quot;')})"` : ''}>
+                        <div class="d-flex align-items-center">
+                            ${primaryImage ? `
+                                <div class="card-image-small me-2">
+                                    <img src="${primaryImage}" alt="${rec.name}" style="width: 40px; height: 56px; border-radius: 4px; object-fit: cover;" onerror="this.style.display='none'">
+                                </div>
+                            ` : ''}
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong style="color: #F3F0FF;">${rec.name}</strong>
+                                        <span class="category-badge">${rec.category}</span>
+                                        ${hasMultipleVersions ? '<span class="versions-badge" style="font-size: 0.7rem;">📚</span>' : ''}
+                                    </div>
+                                    ${rec.estimated_price ? `<small style="color: #B983FF;">$${rec.estimated_price.toFixed(2)}</small>` : ''}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function displayAIAnalysis(analysis) {
             document.getElementById('ai-analysis-section').style.display = 'block';
             document.getElementById('ai-analysis-content').innerHTML = 
                 `<div style="white-space: pre-wrap; color: #F3F0FF;">${analysis}</div>`;
+        }
+
+        function showCardVersions(cardName, allVersions) {
+            document.getElementById('cardVersionsModalLabel').textContent = `${cardName} - All Versions`;
+            
+            const versionsContent = document.getElementById('card-versions-content');
+            
+            // Sort versions by release date (newest first)
+            const sortedVersions = [...allVersions].sort((a, b) => {
+                const dateA = new Date(a.released_at || '2000-01-01');
+                const dateB = new Date(b.released_at || '2000-01-01');
+                return dateB - dateA;
+            });
+            
+            versionsContent.innerHTML = `
+                <div class="row">
+                    ${sortedVersions.map(version => {
+                        // Handle both direct image_uris and nested structure  
+                        const imageUris = version.image_uris || {};
+                        const imageUrl = imageUris.normal || imageUris.large || imageUris.small || '';
+                        const releaseYear = version.released_at ? new Date(version.released_at).getFullYear() : 'Unknown';
+                        
+                        return `
+                            <div class="col-md-3 col-sm-4 col-6 mb-4">
+                                <div class="card" style="background: rgba(45, 27, 74, 0.8); border: 1px solid rgba(185, 131, 255, 0.2); transition: all 0.3s ease;">
+                                    ${imageUrl ? `
+                                        <img src="${imageUrl}" class="card-img-top" alt="${cardName}" 
+                                             style="height: 250px; object-fit: contain; cursor: pointer;"
+                                             onclick="window.open('${imageUrl}', '_blank')">
+                                    ` : `
+                                        <div class="card-img-top d-flex align-items-center justify-content-center" 
+                                             style="height: 250px; background: rgba(0,0,0,0.3); color: #888;">
+                                            No Image
+                                        </div>
+                                    `}
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title" style="color: #F3F0FF; font-size: 0.9rem; margin-bottom: 8px;">
+                                            ${version.set_name || 'Unknown Set'}
+                                        </h6>
+                                        <div style="font-size: 0.8rem; color: #B983FF;">
+                                            <div><strong>${version.set.toUpperCase()}</strong> #${version.collector_number}</div>
+                                            <div class="mt-1">
+                                                <span class="badge" style="background: ${getRarityColor(version.rarity)};">
+                                                    ${version.rarity || 'common'}
+                                                </span>
+                                                <span class="ms-2" style="color: #FFA500;">
+                                                    ${releaseYear}
+                                                </span>
+                                            </div>
+                                            ${version.price > 0 ? `
+                                                <div class="mt-1" style="color: #00FF00;">
+                                                    $${version.price.toFixed(2)}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('cardVersionsModal'));
+            modal.show();
+        }
+
+        function formatManaCost(manaCost) {
+            if (!manaCost) return '';
+            
+            // Parse mana cost like "{3}{W}{U}{B}" into individual symbols
+            const symbols = manaCost.match(/{[^}]+}/g) || [];
+            
+            return symbols.map(symbol => {
+                const cleanSymbol = symbol.replace(/{|}/g, '');
+                
+                // Check if it's a number (generic mana)
+                if (/^\d+$/.test(cleanSymbol)) {
+                    return `<span class="mana-symbol mana-generic">${cleanSymbol}</span>`;
+                }
+                
+                // Color symbols
+                return `<span class="mana-symbol mana-${cleanSymbol.toLowerCase()}">${cleanSymbol}</span>`;
+            }).join('');
+        }
+
+        function getRarityColor(rarity) {
+            const colors = {
+                'mythic': '#FF8C00',
+                'rare': '#FFD700', 
+                'uncommon': '#C0C0C0',
+                'common': '#808080'
+            };
+            return colors[rarity] || colors.common;
+        }
+
+        async function generateAnalysisSummary() {
+            if (!selectedCommander) return;
+            
+            // Show loading state
+            document.getElementById('analysis-summary').style.display = 'block';
+            document.getElementById('analysis-summary-content').innerHTML = 
+                '<div class="loading-spinner"></div> Analyzing all data to generate executive summary...';
+            
+            // Disable the button
+            const btn = document.getElementById('generate-summary-btn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Generating...';
+            
+            try {
+                // Get current analysis data
+                const aiContent = document.getElementById('ai-analysis-content').textContent;
+                
+                // Generate summary via new API endpoint
+                const response = await fetch(`/api/commanders/${encodeURIComponent(selectedCommander)}/analysis-summary`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        commander_name: selectedCommander,
+                        existing_analysis: aiContent,
+                        recommendations_data: {
+                            // Include key metrics for summary
+                            total_recommendations: document.querySelectorAll('.recommendation-card').length,
+                            strategy: document.getElementById('deck-strategy').textContent,
+                            power_level: document.getElementById('power-level').textContent
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('analysis-summary-content').innerHTML = 
+                        `<div style="white-space: pre-wrap; color: #F3F0FF;">${data.summary}</div>`;
+                } else {
+                    throw new Error(data.error || 'Failed to generate summary');
+                }
+                
+            } catch (error) {
+                console.error('Error generating summary:', error);
+                document.getElementById('analysis-summary-content').innerHTML = 
+                    `<div style="color: #FF6B6B;">Failed to generate summary: ${error.message}</div>`;
+            } finally {
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = '📊 Regenerate Summary';
+            }
+        }
+
+        // Theme selection functions
+        function addTheme(theme) {
+            const mechanicsTextarea = document.getElementById('preferred-mechanics');
+            const currentText = mechanicsTextarea.value.trim();
+            
+            if (currentText === '') {
+                mechanicsTextarea.value = theme;
+            } else {
+                // Add with comma separator if not already present
+                if (!currentText.toLowerCase().includes(theme.toLowerCase())) {
+                    mechanicsTextarea.value = currentText + ', ' + theme;
+                }
+            }
+            
+            // Add visual feedback
+            mechanicsTextarea.focus();
+        }
+
+        // Export functions
+        function exportToScryfall() {
+            if (!selectedCommander) return;
+            
+            // Get current recommendations
+            const recommendationCards = document.querySelectorAll('.recommendation-card');
+            if (recommendationCards.length === 0) {
+                alert('No recommendations to export. Please generate recommendations first.');
+                return;
+            }
+            
+            // Build deck list in Scryfall format
+            let deckList = `# ${selectedCommander} - AI Enhanced Commander Deck\n`;
+            deckList += `# Generated by MTG EcoRec on ${new Date().toLocaleDateString()}\n\n`;
+            deckList += `1 ${selectedCommander} *CMDR*\n\n`;
+            
+            // Add main deck cards
+            recommendationCards.forEach((card, index) => {
+                const cardName = card.querySelector('strong').textContent.trim();
+                const isAIPick = card.querySelector('.recommendation-card').style.border.includes('78,205,196');
+                deckList += `1 ${cardName}${isAIPick ? ' # AI Recommended' : ''}\n`;
+            });
+            
+            // Add basic lands
+            deckList += `\n# Basic Lands (add as needed)\n`;
+            deckList += `10 Plains\n10 Island\n10 Swamp\n10 Mountain\n10 Forest\n`;
+            
+            // Create and download file
+            const blob = new Blob([deckList], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${selectedCommander.replace(/[^a-zA-Z0-9]/g, '_')}_deck.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Also copy to clipboard
+            navigator.clipboard.writeText(deckList).then(() => {
+                alert('Deck list copied to clipboard and downloaded! You can paste this into Scryfall\'s deck builder.');
+            }).catch(() => {
+                alert('Deck list downloaded! You can upload the file to Scryfall\'s deck builder.');
+            });
+        }
+
+        function exportToText() {
+            if (!selectedCommander) return;
+            
+            // Get current recommendations
+            const recommendationCards = document.querySelectorAll('.recommendation-card');
+            if (recommendationCards.length === 0) {
+                alert('No recommendations to export. Please generate recommendations first.');
+                return;
+            }
+            
+            // Build simple text list
+            let textList = `${selectedCommander} - Commander Deck Recommendations\n`;
+            textList += `Generated: ${new Date().toLocaleString()}\n`;
+            textList += `=`.repeat(50) + '\n\n';
+            
+            textList += `COMMANDER:\n${selectedCommander}\n\n`;
+            
+            // Separate AI and regular recommendations
+            const aiRecommendations = [];
+            const regularRecommendations = [];
+            
+            recommendationCards.forEach((card) => {
+                const cardName = card.querySelector('strong').textContent.trim();
+                const category = card.querySelector('.category-badge').textContent.trim();
+                const confidence = card.querySelector('.d-flex .text-align-right')?.textContent.includes('%') ? 
+                    card.querySelector('.d-flex .text-align-right').textContent.trim() : 'N/A';
+                const isAIPick = card.querySelector('.recommendation-card').style.border.includes('78,205,196');
+                
+                const cardInfo = `${cardName} (${category}) - ${confidence}`;
+                
+                if (isAIPick) {
+                    aiRecommendations.push(cardInfo);
+                } else {
+                    regularRecommendations.push(cardInfo);
+                }
+            });
+            
+            if (aiRecommendations.length > 0) {
+                textList += `AI RECOMMENDED CARDS (${aiRecommendations.length}):\n`;
+                aiRecommendations.forEach((card, index) => {
+                    textList += `${index + 1}. ${card}\n`;
+                });
+                textList += '\n';
+            }
+            
+            if (regularRecommendations.length > 0) {
+                textList += `OTHER RECOMMENDATIONS (${regularRecommendations.length}):\n`;
+                regularRecommendations.forEach((card, index) => {
+                    textList += `${index + 1}. ${card}\n`;
+                });
+                textList += '\n';
+            }
+            
+            textList += `\nTotal Recommendations: ${recommendationCards.length}\n`;
+            textList += `AI Enhanced: ${aiRecommendations.length} cards\n`;
+            
+            // Create and download file
+            const blob = new Blob([textList], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${selectedCommander.replace(/[^a-zA-Z0-9]/g, '_')}_recommendations.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Also copy to clipboard
+            navigator.clipboard.writeText(textList).then(() => {
+                alert('Recommendation list copied to clipboard and downloaded!');
+            }).catch(() => {
+                alert('Recommendation list downloaded!');
+            });
         }
     </script>
 </body>

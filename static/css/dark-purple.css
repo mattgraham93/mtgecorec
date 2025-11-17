@@ -316,3 +316,47 @@ a:hover {
 .bar {
   filter: drop-shadow(0 0 4px #9D4EDD88);
 }
+
+/* Mana Symbol Styles */
+.mana-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: bold;
+  margin: 0 1px;
+  line-height: 1;
+  border: 2px solid #333;
+}
+
+/* Color identity symbols */
+.mana-w { background: #FFFBD5; color: #000; }
+.mana-u { background: #0E68AB; color: #fff; }
+.mana-b { background: #150B00; color: #fff; }
+.mana-r { background: #D3202A; color: #fff; }
+.mana-g { background: #00733E; color: #fff; }
+
+/* Generic mana cost symbols (gray with black text) */
+.mana-generic {
+  background: #C0C0C0;
+  color: #000;
+  border-color: #888;
+}
+
+/* Mana cost display container */
+.mana-cost-display {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Color identity container spacing */
+.color-identity {
+  margin: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}

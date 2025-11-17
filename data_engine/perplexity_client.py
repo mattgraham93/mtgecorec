@@ -337,11 +337,28 @@ class PerplexityClient:
             logger.info(f"💭 Generating analysis for {commander_name}...")
             response = self._make_request_with_retry(enhanced_messages, model="sonar-pro")
             
+            # Serialize search results properly for JSON response
+            serializable_search_results = []
+            if search_data['success'] and search_data['search_results']:
+                for search_result in search_data['search_results']:
+                    serializable_results = []
+                    for result in search_result.get('results', []):
+                        if hasattr(result, 'title') and hasattr(result, 'snippet'):
+                            serializable_results.append({
+                                'title': result.title,
+                                'snippet': result.snippet,
+                                'url': getattr(result, 'url', '')
+                            })
+                    serializable_search_results.append({
+                        'query': search_result.get('query', ''),
+                        'results': serializable_results
+                    })
+            
             return {
                 'commander': commander_name,
                 'analysis': response['choices'][0]['message']['content'],
                 'citations': response.get('citations', []),
-                'search_context': search_data['search_results'] if search_data['success'] else [],
+                'search_context': serializable_search_results,
                 'success': True
             }
                 
@@ -425,12 +442,29 @@ class PerplexityClient:
             
             response = self._make_request_with_retry(messages, model="sonar-pro")
             
+            # Serialize search results properly for JSON response  
+            serializable_search_results = []
+            for search_result in search_results:
+                serializable_results = []
+                for result in search_result.get('results', []):
+                    if hasattr(result, 'title') and hasattr(result, 'snippet'):
+                        serializable_results.append({
+                            'title': result.title,
+                            'snippet': result.snippet,
+                            'url': getattr(result, 'url', '')
+                        })
+                serializable_search_results.append({
+                    'card': search_result.get('card', ''),
+                    'query': search_result.get('query', ''),
+                    'results': serializable_results
+                })
+            
             return {
                 'cards': target_cards,
                 'theme': deck_theme,
                 'analysis': response['choices'][0]['message']['content'],
                 'citations': response.get('citations', []),
-                'search_results': search_results,
+                'search_results': serializable_search_results,
                 'success': True
             }
             
@@ -504,12 +538,29 @@ class PerplexityClient:
             
             response = self._make_request_with_retry(messages, model="sonar-pro")
             
+            # Serialize search results properly for JSON response
+            serializable_search_results = []
+            for search_result in search_results:
+                serializable_results = []
+                for result in search_result.get('results', []):
+                    if hasattr(result, 'title') and hasattr(result, 'snippet'):
+                        serializable_results.append({
+                            'title': result.title,
+                            'snippet': result.snippet,
+                            'url': getattr(result, 'url', '')
+                        })
+                serializable_search_results.append({
+                    'card': search_result.get('card', ''),
+                    'query': search_result.get('query', ''),
+                    'results': serializable_results
+                })
+            
             return {
                 'original_cards': expensive_cards,
                 'budget_limit': budget_limit,
                 'alternatives': response['choices'][0]['message']['content'],
                 'citations': response.get('citations', []),
-                'search_results': search_results,
+                'search_results': serializable_search_results,
                 'success': True
             }
             
@@ -591,12 +642,28 @@ class PerplexityClient:
             
             response = self._make_request_with_retry(messages, model="sonar-pro")
             
+            # Serialize search results properly for JSON response
+            serializable_search_results = []
+            for search_result in search_results:
+                serializable_results = []  
+                for result in search_result.get('results', []):
+                    if hasattr(result, 'title') and hasattr(result, 'snippet'):
+                        serializable_results.append({
+                            'title': result.title,
+                            'snippet': result.snippet,
+                            'url': getattr(result, 'url', '')
+                        })
+                serializable_search_results.append({
+                    'query': search_result.get('query', ''),
+                    'results': serializable_results
+                })
+            
             return {
                 'commander': commander,
                 'playgroup_type': playgroup_description,
                 'analysis': response['choices'][0]['message']['content'],
                 'citations': response.get('citations', []),
-                'search_results': search_results,
+                'search_results': serializable_search_results,
                 'success': True
             }
             

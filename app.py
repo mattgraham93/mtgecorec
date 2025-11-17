@@ -548,9 +548,10 @@ def api_search_commanders():
 
 @app.route('/api/commanders/<commander_name>/recommendations')
 def api_get_commander_recommendations(commander_name):
-   """Get deck recommendations for a specific commander."""
+   """Get deck recommendations for a specific commander with optional AI-powered personalization."""
    budget_limit = request.args.get('budget', type=float)
    power_level = request.args.get('power_level', 'casual')
+   preferred_mechanics = request.args.get('preferred_mechanics', '').strip()
    
    if not commander_name:
       return jsonify({'error': 'Commander name required'}), 400
@@ -563,14 +564,16 @@ def api_get_commander_recommendations(commander_name):
       sys.path.append(os.path.join(current_dir, 'data_engine'))
       from commander_recommender import CommanderRecommendationEngine, RecommendationRequest
       
-      # Create recommendation engine
-      engine = CommanderRecommendationEngine(use_ai=False)  # Start without AI for speed
+      # Create recommendation engine with AI if preferred mechanics are provided
+      use_ai = bool(preferred_mechanics)
+      engine = CommanderRecommendationEngine(use_ai=use_ai)
       
       # Create request
       req = RecommendationRequest(
          commander_name=commander_name,
          budget_limit=budget_limit,
-         power_level=power_level
+         power_level=power_level,
+         preferred_mechanics=preferred_mechanics if preferred_mechanics else None
       )
       
       # Generate recommendations (this is async, so we'll need to handle it)
@@ -601,12 +604,51 @@ def api_get_commander_recommendations(commander_name):
             'synergy_score': rec.synergy_score,
             'category': rec.category,
             'reasons': rec.reasons[:2],  # Limit reasons for response size
-            'estimated_price': rec.estimated_price
+            'estimated_price': rec.estimated_price,
+            'ai_suggested': getattr(rec, 'ai_suggested', False),
+            'primary_version': {
+               'set': rec.card_data.get('set', ''),
+               'set_name': rec.card_data.get('set_name', ''),
+               'collector_number': rec.card_data.get('collector_number', ''),
+               'rarity': rec.card_data.get('rarity', 'common'),
+               'image_uris': rec.card_data.get('image_uris', {}),
+               'scryfall_id': rec.card_data.get('scryfall_id', ''),
+               'price': rec.card_data.get('price', 0)
+            },
+            'all_versions': [{
+               'set': v.get('set', ''),
+               'set_name': v.get('set_name', ''),
+               'collector_number': v.get('collector_number', ''),
+               'rarity': v.get('rarity', 'common'),
+               'image_uris': v.get('image_uris', {}),
+               'scryfall_id': v.get('scryfall_id', ''),
+               'price': v.get('price', 0),
+               'released_at': v.get('released_at', '')
+            } for v in (rec.all_versions or [rec.card_data])[:10]]  # Limit to 10 versions
          } for rec in recommendations.recommendations[:50]],  # Top 50
          'mana_base': [{
             'name': rec.card_name,
             'category': rec.category,
-            'estimated_price': rec.estimated_price
+            'estimated_price': rec.estimated_price,
+            'primary_version': {
+               'set': rec.card_data.get('set', ''),
+               'set_name': rec.card_data.get('set_name', ''),
+               'collector_number': rec.card_data.get('collector_number', ''),
+               'rarity': rec.card_data.get('rarity', 'common'),
+               'image_uris': rec.card_data.get('image_uris', {}),
+               'scryfall_id': rec.card_data.get('scryfall_id', ''),
+               'price': rec.card_data.get('price', 0)
+            },
+            'all_versions': [{
+               'set': v.get('set', ''),
+               'set_name': v.get('set_name', ''),
+               'collector_number': v.get('collector_number', ''),
+               'rarity': v.get('rarity', 'common'),
+               'image_uris': v.get('image_uris', {}),
+               'scryfall_id': v.get('scryfall_id', ''),
+               'price': v.get('price', 0),
+               'released_at': v.get('released_at', '')
+            } for v in (rec.all_versions or [rec.card_data])[:10]]  # Limit to 10 versions
          } for rec in recommendations.mana_base_suggestions],
          'strategy': recommendations.deck_strategy,
          'power_level': recommendations.power_level_assessment,
@@ -636,8 +678,18 @@ def api_get_ai_analysis(commander_name):
       sys.path.append(os.path.join(current_dir, 'data_engine'))
       from perplexity_client import PerplexityClient
       
-      client = PerplexityClient()
-      analysis = client.analyze_commander_synergies(commander_name, current_deck)
+      # Temporarily disabled to save costs - AI card recommendations still active
+      # client = PerplexityClient()
+      # analysis = client.analyze_commander_synergies(commander_name, current_deck)
+      
+      # Return simple message instead of expensive analysis
+      analysis = {
+         'analysis': 'AI analysis temporarily disabled to reduce costs. Card recommendations with AI matching are still active!',
+         'summary': f'{commander_name} analysis - focusing on cost-effective AI card recommendations.',
+         'recommendations': [],
+         'win_conditions': [],
+         'synergy_categories': []
+      }
       
       return jsonify(analysis)
       
@@ -645,6 +697,73 @@ def api_get_ai_analysis(commander_name):
       return jsonify({'error': 'AI analysis unavailable - API key not configured'}), 503
    except Exception as e:
       print(f'Error in AI analysis: {e}')
+      return jsonify({'error': str(e)}), 500
+
+@app.route('/api/commanders/<commander_name>/analysis-summary', methods=['POST'])
+def api_generate_analysis_summary(commander_name):
+   """Generate an executive summary of all analysis data using Perplexity."""
+   
+   try:
+      data = request.get_json()
+      existing_analysis = data.get('existing_analysis', '')
+      recommendations_data = data.get('recommendations_data', {})
+      
+      if not commander_name:
+         return jsonify({'error': 'Commander name required'}), 400
+      
+      # Import Perplexity client
+      import sys
+      import os
+      current_dir = os.path.dirname(os.path.abspath(__file__))
+      sys.path.append(os.path.join(current_dir, 'data_engine'))
+      from perplexity_client import PerplexityClient
+      
+      client = PerplexityClient()
+      
+      # Create comprehensive summary prompt
+      summary_prompt = f"""
+      I need you to create a concise executive summary of a Magic: The Gathering Commander deck analysis.
+      
+      **Commander**: {commander_name}
+      **Strategy**: {recommendations_data.get('strategy', 'Unknown')}
+      **Power Level**: {recommendations_data.get('power_level', 'Unknown')}
+      **Total Recommendations**: {recommendations_data.get('total_recommendations', 0)} cards
+      
+      **Detailed Analysis**:
+      {existing_analysis[:2000]}  # Limit to prevent token overflow
+      
+      Please provide a brief executive summary (3-4 paragraphs max) that covers:
+      
+      1. **🎯 Deck Identity**: What this commander does and its core strategy
+      2. **🔧 Key Synergies**: The most important card interactions and engines  
+      3. **💪 Strengths & Weaknesses**: What the deck does well and potential vulnerabilities
+      4. **🎮 Play Pattern**: How games typically unfold with this commander
+      
+      Keep it concise but informative - this is for someone who wants to quickly understand the deck without reading the full analysis.
+      """
+      
+      # Generate summary using Chat API (no search needed for summary)
+      messages = [{
+         "role": "system",
+         "content": """You are an expert MTG Commander analyst who excels at distilling complex 
+         deck analysis into clear, actionable executive summaries. Focus on the most important 
+         strategic insights and practical implications."""
+      }, {
+         "role": "user", 
+         "content": summary_prompt
+      }]
+      
+      response = client._make_request_with_retry(messages, model="sonar-pro")
+      
+      return jsonify({
+         'commander': commander_name,
+         'summary': response['choices'][0]['message']['content'],
+         'citations': response.get('citations', []),
+         'success': True
+      })
+      
+   except Exception as e:
+      print(f'Error generating analysis summary: {e}')
       return jsonify({'error': str(e)}), 500
 
 @app.route('/regenerate-analysis')
