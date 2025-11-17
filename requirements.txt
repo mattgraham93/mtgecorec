@@ -6,6 +6,9 @@ pymongo
 scrython
 ijson
 python-dotenv
+perplexityai==0.20.0
+requests==2.32.5
+httpx==0.28.1
 
 pandas
 numpy
