@@ -12,6 +12,7 @@
   <nav class="side-nav-links mt-3" id="side-nav-links">
     <a class="nav-link nav-panel-link mb-2 {% if request.path == '/' %}active{% endif %}" href="/">Home</a>
     <a class="nav-link nav-panel-link mb-2 {% if 'cards' in request.path %}active{% endif %}" href="/cards">Cards</a>
+    <a class="nav-link nav-panel-link mb-2 {% if 'commander' in request.path %}active{% endif %}" href="/commander">Commander Builder</a>
     <a class="nav-link nav-panel-link mb-2 {% if 'visualizations' in request.path %}active{% endif %}" href="/visualizations">Visualizations</a>
     <a class="nav-link nav-panel-link mb-2 {% if 'narrative' in request.path %}active{% endif %}" href="/narrative" style="display: none;">Economy</a>
     <a class="nav-link nav-panel-link mb-2 {% if 'analysis' in request.path %}active{% endif %}" href="/analysis" style="display: none;">Analysis</a>

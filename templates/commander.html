@@ -1,0 +1,452 @@
+<!doctype html>
+<head>
+    <title>Commander Deck Builder - MTG EcoRec</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-purple.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        .commander-search {
+            background: rgba(185, 131, 255, 0.05);
+            border: 2px solid rgba(185, 131, 255, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .commander-card {
+            background: rgba(185, 131, 255, 0.1);
+            border: 1px solid rgba(185, 131, 255, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .commander-card:hover {
+            background: rgba(185, 131, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .commander-card.selected {
+            background: rgba(185, 131, 255, 0.3);
+            border-color: #B983FF;
+        }
+        
+        .color-identity {
+            display: inline-flex;
+            gap: 4px;
+            margin-left: 10px;
+        }
+        
+        .mana-symbol {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 2px rgba(0,0,0,0.8);
+        }
+        
+        .mana-W { background: #FFFBD5; color: #000; }
+        .mana-U { background: #0E68AB; }
+        .mana-B { background: #150B00; }
+        .mana-R { background: #D3202A; }
+        .mana-G { background: #00733E; }
+        
+        .recommendation-card {
+            background: rgba(45, 27, 74, 0.8);
+            border: 1px solid rgba(185, 131, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            transition: all 0.3s ease;
+        }
+        
+        .recommendation-card:hover {
+            background: rgba(45, 27, 74, 1);
+            border-color: rgba(185, 131, 255, 0.5);
+        }
+        
+        .confidence-bar {
+            height: 4px;
+            background: rgba(185, 131, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #B983FF, #9D4EDD);
+            transition: width 0.3s ease;
+        }
+        
+        .category-badge {
+            background: rgba(185, 131, 255, 0.2);
+            color: #B983FF;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-right: 8px;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(185, 131, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #B983FF;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .ai-analysis {
+            background: rgba(0, 100, 0, 0.1);
+            border: 1px solid rgba(0, 200, 0, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .filters {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<html>
+<body>
+    {% include 'nav.html' %}
+    
+    <main style="margin-top: 4.8rem;">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Commander Selection Panel -->
+                <div class="col-md-4">
+                    <div class="commander-search">
+                        <h3 class="text-center mb-3" style="color: #B983FF;">Choose Your Commander</h3>
+                        
+                        <div class="mb-3">
+                            <input type="text" 
+                                   id="commander-search-input" 
+                                   class="form-control" 
+                                   placeholder="Search for a commander..."
+                                   style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
+                        </div>
+                        
+                        <div id="commander-results" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Commander search results will appear here -->
+                        </div>
+                        
+                        <div id="selected-commander" style="display: none;">
+                            <h5 style="color: #B983FF;">Selected Commander:</h5>
+                            <div id="commander-display"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recommendation Filters -->
+                    <div class="filters" id="recommendation-filters" style="display: none;">
+                        <h5 style="color: #B983FF;">Preferences</h5>
+                        
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #F3F0FF;">Budget per Card</label>
+                            <select id="budget-select" class="form-control" style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
+                                <option value="">No budget limit</option>
+                                <option value="1">Under $1</option>
+                                <option value="5">Under $5</option>
+                                <option value="10">Under $10</option>
+                                <option value="25">Under $25</option>
+                                <option value="50">Under $50</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label" style="color: #F3F0FF;">Power Level</label>
+                            <select id="power-select" class="form-control" style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
+                                <option value="casual">Casual</option>
+                                <option value="focused">Focused</option>
+                                <option value="optimized">Optimized</option>
+                                <option value="competitive">Competitive</option>
+                            </select>
+                        </div>
+                        
+                        <button id="get-recommendations-btn" class="btn btn-primary w-100" 
+                                style="background: #2D1B4A; border-color: #B983FF;">
+                            Get Recommendations
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Recommendations Panel -->
+                <div class="col-md-8">
+                    <div id="recommendations-panel" style="display: none;">
+                        <h3 style="color: #B983FF;">Deck Recommendations</h3>
+                        
+                        <!-- AI Analysis Section -->
+                        <div id="ai-analysis-section" style="display: none;">
+                            <div class="ai-analysis">
+                                <h5 style="color: #00FF00;">🤖 AI Strategic Analysis</h5>
+                                <div id="ai-analysis-content">
+                                    <div class="loading-spinner"></div> Loading AI analysis...
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Deck Summary -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card" style="background: rgba(45, 27, 74, 0.6); border-color: rgba(185, 131, 255, 0.3);">
+                                    <div class="card-body">
+                                        <h6 class="card-title" style="color: #B983FF;">Deck Strategy</h6>
+                                        <p class="card-text" id="deck-strategy" style="color: #F3F0FF;">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card" style="background: rgba(45, 27, 74, 0.6); border-color: rgba(185, 131, 255, 0.3);">
+                                    <div class="card-body">
+                                        <h6 class="card-title" style="color: #B983FF;">Power Level</h6>
+                                        <p class="card-text" id="power-level" style="color: #F3F0FF;">-</p>
+                                        <p class="card-text"><small id="total-cost" style="color: #B983FF;">-</small></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recommendations Tabs -->
+                        <ul class="nav nav-tabs" id="recommendations-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="main-deck-tab" data-bs-toggle="tab" data-bs-target="#main-deck" type="button" role="tab">
+                                    Main Deck
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="mana-base-tab" data-bs-toggle="tab" data-bs-target="#mana-base" type="button" role="tab">
+                                    Mana Base
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="recommendations-tab-content">
+                            <div class="tab-pane fade show active" id="main-deck" role="tabpanel">
+                                <div id="main-deck-recommendations">
+                                    <!-- Main deck recommendations will appear here -->
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="mana-base" role="tabpanel">
+                                <div id="mana-base-recommendations">
+                                    <!-- Mana base recommendations will appear here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="loading-recommendations" style="display: none; text-align: center; padding: 4rem;">
+                        <div class="loading-spinner" style="width: 40px; height: 40px;"></div>
+                        <p style="color: #B983FF; margin-top: 1rem;">Analyzing thousands of cards to find the perfect recommendations...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        let selectedCommander = null;
+        let searchTimeout = null;
+
+        // Commander search functionality
+        document.getElementById('commander-search-input').addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                document.getElementById('commander-results').innerHTML = '';
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                searchCommanders(query);
+            }, 300);
+        });
+
+        async function searchCommanders(query) {
+            try {
+                const response = await fetch(`/api/commanders/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                displayCommanderResults(data.commanders || []);
+            } catch (error) {
+                console.error('Error searching commanders:', error);
+            }
+        }
+
+        function displayCommanderResults(commanders) {
+            const resultsDiv = document.getElementById('commander-results');
+            
+            if (commanders.length === 0) {
+                resultsDiv.innerHTML = '<p style="color: #888;">No commanders found</p>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = commanders.map(commander => {
+                const colors = commander.colors || [];
+                const colorSymbols = colors.map(color => 
+                    `<span class="mana-symbol mana-${color}">${color}</span>`
+                ).join('');
+                
+                return `
+                    <div class="commander-card" onclick="selectCommander('${commander.name}')">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <strong>${commander.name}</strong>
+                                <div class="color-identity">${colorSymbols}</div>
+                                <small style="color: #888;">${commander.type_line}</small>
+                            </div>
+                            <div>
+                                ${commander.mana_cost || ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectCommander(commanderName) {
+            selectedCommander = commanderName;
+            
+            // Highlight selected commander
+            document.querySelectorAll('.commander-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            event.target.closest('.commander-card').classList.add('selected');
+            
+            // Show selected commander
+            document.getElementById('selected-commander').style.display = 'block';
+            document.getElementById('commander-display').innerHTML = `<strong>${commanderName}</strong>`;
+            
+            // Show filters
+            document.getElementById('recommendation-filters').style.display = 'block';
+        }
+
+        // Get recommendations
+        document.getElementById('get-recommendations-btn').addEventListener('click', async function() {
+            if (!selectedCommander) return;
+            
+            const budget = document.getElementById('budget-select').value;
+            const powerLevel = document.getElementById('power-select').value;
+            
+            // Show loading
+            document.getElementById('loading-recommendations').style.display = 'block';
+            document.getElementById('recommendations-panel').style.display = 'none';
+            
+            try {
+                // Get main recommendations
+                const params = new URLSearchParams({
+                    commander_name: selectedCommander,
+                    power_level: powerLevel
+                });
+                
+                if (budget) {
+                    params.append('budget', budget);
+                }
+                
+                const response = await fetch(`/api/commanders/${encodeURIComponent(selectedCommander)}/recommendations?${params}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                displayRecommendations(data);
+                
+                // Try to get AI analysis
+                try {
+                    const aiResponse = await fetch(`/api/commanders/${encodeURIComponent(selectedCommander)}/ai-analysis?commander_name=${encodeURIComponent(selectedCommander)}`);
+                    const aiData = await aiResponse.json();
+                    
+                    if (aiData.success) {
+                        displayAIAnalysis(aiData.analysis);
+                    }
+                } catch (aiError) {
+                    console.warn('AI analysis not available:', aiError);
+                }
+                
+            } catch (error) {
+                console.error('Error getting recommendations:', error);
+                alert('Error getting recommendations: ' + error.message);
+            } finally {
+                document.getElementById('loading-recommendations').style.display = 'none';
+            }
+        });
+
+        function displayRecommendations(data) {
+            // Show recommendations panel
+            document.getElementById('recommendations-panel').style.display = 'block';
+            
+            // Update summary
+            document.getElementById('deck-strategy').textContent = data.strategy || 'Strategy analysis in progress...';
+            document.getElementById('power-level').textContent = data.power_level || 'Analyzing power level...';
+            document.getElementById('total-cost').textContent = data.total_cost ? `Est. Cost: $${data.total_cost.toFixed(2)}` : '';
+            
+            // Display main deck recommendations
+            const mainDeckDiv = document.getElementById('main-deck-recommendations');
+            mainDeckDiv.innerHTML = data.recommendations.map(rec => {
+                const confidencePercent = (rec.confidence * 100).toFixed(0);
+                
+                return `
+                    <div class="recommendation-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <strong style="color: #F3F0FF;">${rec.name}</strong>
+                                <span class="category-badge">${rec.category}</span>
+                                ${rec.estimated_price ? `<small style="color: #B983FF;">$${rec.estimated_price.toFixed(2)}</small>` : ''}
+                                <div style="font-size: 0.9rem; color: #CCC; margin-top: 4px;">
+                                    ${rec.reasons.slice(0, 2).join(' • ')}
+                                </div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                                </div>
+                            </div>
+                            <div style="text-align: right; color: #B983FF;">
+                                ${confidencePercent}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Display mana base
+            const manaBaseDiv = document.getElementById('mana-base-recommendations');
+            manaBaseDiv.innerHTML = data.mana_base.map(rec => `
+                <div class="recommendation-card">
+                    <div class="d-flex justify-content-between">
+                        <strong style="color: #F3F0FF;">${rec.name}</strong>
+                        <span class="category-badge">${rec.category}</span>
+                        ${rec.estimated_price ? `<small style="color: #B983FF;">$${rec.estimated_price.toFixed(2)}</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayAIAnalysis(analysis) {
+            document.getElementById('ai-analysis-section').style.display = 'block';
+            document.getElementById('ai-analysis-content').innerHTML = 
+                `<div style="white-space: pre-wrap; color: #F3F0FF;">${analysis}</div>`;
+        }
+    </script>
+</body>
+</html>

@@ -507,6 +507,146 @@ def api_cards_summary():
    })
 
 
+@app.route('/commander')
+def commander_deck_builder():
+   """Commander deck builder page."""
+   return render_template('commander.html')
+
+@app.route('/api/commanders/search')
+def api_search_commanders():
+   """Search for commanders by name."""
+   query = request.args.get('q', '')
+   if len(query) < 2:
+      return jsonify({'commanders': []})
+   
+   try:
+      client = cosmos_driver.get_mongo_client()
+      collection = cosmos_driver.get_collection(client, 'mtgecorec', 'cards')
+      
+      # Search for legendary creatures and planeswalkers
+      search_query = {
+         'name': {'$regex': query, '$options': 'i'},
+         'legalities.commander': {'$in': ['legal', 'restricted']},
+         '$or': [
+            {'type_line': {'$regex': 'Legendary.*Creature', '$options': 'i'}},
+            {'type_line': {'$regex': 'Legendary.*Planeswalker', '$options': 'i'}},
+            {'oracle_text': {'$regex': 'can be your commander', '$options': 'i'}}
+         ]
+      }
+      
+      commanders = list(collection.find(search_query, {
+         'name': 1, 'mana_cost': 1, 'colors': 1, 'type_line': 1,
+         'oracle_text': 1, 'power': 1, 'toughness': 1, 'image_uris': 1,
+         '_id': 0
+      }).limit(20))
+      
+      return jsonify({'commanders': commanders})
+      
+   except Exception as e:
+      print(f'Error searching commanders: {e}')
+      return jsonify({'error': str(e)}), 500
+
+@app.route('/api/commanders/<commander_name>/recommendations')
+def api_get_commander_recommendations(commander_name):
+   """Get deck recommendations for a specific commander."""
+   budget_limit = request.args.get('budget', type=float)
+   power_level = request.args.get('power_level', 'casual')
+   
+   if not commander_name:
+      return jsonify({'error': 'Commander name required'}), 400
+   
+   try:
+      # Import here to avoid circular imports
+      import sys
+      import os
+      current_dir = os.path.dirname(os.path.abspath(__file__))
+      sys.path.append(os.path.join(current_dir, 'data_engine'))
+      from commander_recommender import CommanderRecommendationEngine, RecommendationRequest
+      
+      # Create recommendation engine
+      engine = CommanderRecommendationEngine(use_ai=False)  # Start without AI for speed
+      
+      # Create request
+      req = RecommendationRequest(
+         commander_name=commander_name,
+         budget_limit=budget_limit,
+         power_level=power_level
+      )
+      
+      # Generate recommendations (this is async, so we'll need to handle it)
+      import asyncio
+      
+      # Run in thread to avoid blocking
+      def run_async():
+         loop = asyncio.new_event_loop()
+         asyncio.set_event_loop(loop)
+         try:
+            return loop.run_until_complete(engine.generate_recommendations(req))
+         finally:
+            loop.close()
+      
+      recommendations = run_async()
+      
+      # Convert to JSON-serializable format
+      result = {
+         'commander': {
+            'name': recommendations.commander.name,
+            'color_identity': recommendations.commander.color_identity.to_string(),
+            'colors': list(recommendations.commander.color_identity.colors),
+            'mana_cost': recommendations.commander.mana_cost
+         },
+         'recommendations': [{
+            'name': rec.card_name,
+            'confidence': rec.confidence_score,
+            'synergy_score': rec.synergy_score,
+            'category': rec.category,
+            'reasons': rec.reasons[:2],  # Limit reasons for response size
+            'estimated_price': rec.estimated_price
+         } for rec in recommendations.recommendations[:50]],  # Top 50
+         'mana_base': [{
+            'name': rec.card_name,
+            'category': rec.category,
+            'estimated_price': rec.estimated_price
+         } for rec in recommendations.mana_base_suggestions],
+         'strategy': recommendations.deck_strategy,
+         'power_level': recommendations.power_level_assessment,
+         'total_cost': recommendations.estimated_total_cost
+      }
+      
+      return jsonify(result)
+      
+   except Exception as e:
+      print(f'Error generating recommendations: {e}')
+      import traceback
+      traceback.print_exc()
+      return jsonify({'error': str(e)}), 500
+
+@app.route('/api/commanders/<commander_name>/ai-analysis')
+def api_get_ai_analysis(commander_name):
+   """Get AI analysis for a commander using Perplexity."""
+   current_deck = request.args.getlist('deck[]')  # Cards already in deck
+   
+   if not commander_name:
+      return jsonify({'error': 'Commander name required'}), 400
+   
+   try:
+      import sys
+      import os
+      current_dir = os.path.dirname(os.path.abspath(__file__))
+      sys.path.append(os.path.join(current_dir, 'data_engine'))
+      from perplexity_client import PerplexityClient
+      
+      client = PerplexityClient()
+      analysis = client.analyze_commander_synergies(commander_name, current_deck)
+      
+      return jsonify(analysis)
+      
+   except ValueError as e:
+      return jsonify({'error': 'AI analysis unavailable - API key not configured'}), 503
+   except Exception as e:
+      print(f'Error in AI analysis: {e}')
+      return jsonify({'error': str(e)}), 500
+
 @app.route('/regenerate-analysis')
 def regenerate_analysis():
    try:
