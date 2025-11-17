@@ -2,9 +2,7 @@ import os
 from flask import (Flask, redirect, render_template, request,
                    send_from_directory, url_for, jsonify)
 # Import Cosmos DB driver
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), 'data_engine'))
-from data_engine import cosmos_driver
+from core.data_engine import cosmos_driver
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -560,9 +558,7 @@ def api_get_commander_recommendations(commander_name):
       # Import here to avoid circular imports
       import sys
       import os
-      current_dir = os.path.dirname(os.path.abspath(__file__))
-      sys.path.append(os.path.join(current_dir, 'data_engine'))
-      from commander_recommender import CommanderRecommendationEngine, RecommendationRequest
+      from core.data_engine.commander_recommender import CommanderRecommendationEngine, RecommendationRequest
       
       # Create recommendation engine with AI if preferred mechanics are provided
       use_ai = bool(preferred_mechanics)
@@ -674,9 +670,7 @@ def api_get_ai_analysis(commander_name):
    try:
       import sys
       import os
-      current_dir = os.path.dirname(os.path.abspath(__file__))
-      sys.path.append(os.path.join(current_dir, 'data_engine'))
-      from perplexity_client import PerplexityClient
+      from core.data_engine.perplexity_client import PerplexityClient
       
       # Temporarily disabled to save costs - AI card recommendations still active
       # client = PerplexityClient()
@@ -714,9 +708,7 @@ def api_generate_analysis_summary(commander_name):
       # Import Perplexity client
       import sys
       import os
-      current_dir = os.path.dirname(os.path.abspath(__file__))
-      sys.path.append(os.path.join(current_dir, 'data_engine'))
-      from perplexity_client import PerplexityClient
+      from core.data_engine.perplexity_client import PerplexityClient
       
       client = PerplexityClient()
       
