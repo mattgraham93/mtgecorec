@@ -745,7 +745,7 @@ def api_generate_analysis_summary(commander_name):
          "content": summary_prompt
       }]
       
-      response = client._make_request_with_retry(messages, model="sonar-pro")
+      response = client._make_request_with_retry(messages, model="sonar")
       
       return jsonify({
          'commander': commander_name,
