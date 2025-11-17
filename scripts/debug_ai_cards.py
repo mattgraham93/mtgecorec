@@ -26,7 +26,7 @@ def check_ai_cards():
             "Favorable Winds", "Magus of the Moat", "Baleful Strix"
         ]
         
-        print("🔍 Checking AI suggested cards in database:")
+        print("Checking AI suggested cards in database:")
         print("=" * 60)
         
         found_cards = []
@@ -40,7 +40,7 @@ def check_ai_cards():
                 colors = results[0].get('colors', [])
                 type_line = results[0].get('type_line', '')
                 
-                print(f"✅ {card_name}")
+                print(f"✓ {card_name}")
                 print(f"   Versions: {len(results)}")
                 print(f"   Commander Legal: {legality}")
                 print(f"   Colors: {colors}")
@@ -50,11 +50,11 @@ def check_ai_cards():
                 if legality == 'legal':
                     found_cards.append(card_name)
             else:
-                print(f"❌ {card_name} - NOT FOUND")
+                print(f"✗ {card_name} - NOT FOUND")
                 missing_cards.append(card_name)
         
         print("=" * 60)
-        print(f"📊 Summary:")
+        print(f"Summary:")
         print(f"   Found in DB: {len(found_cards)}/{len(ai_suggested)}")
         print(f"   Missing: {len(missing_cards)}")
         
@@ -64,7 +64,7 @@ def check_ai_cards():
         return found_cards, missing_cards
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         return [], []
 
 if __name__ == "__main__":

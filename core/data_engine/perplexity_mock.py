@@ -161,14 +161,14 @@ def test_mock_client():
     result = client.analyze_commander_synergies("Atraxa, Praetors' Voice")
     
     if result['success']:
-        print("✅ Mock client working!")
-        print("\n📊 Mock Analysis Preview:")
+        print("Mock client working!")
+        print("\nMock Analysis Preview:")
         print(result['analysis'][:500] + "..." if len(result['analysis']) > 500 else result['analysis'])
-        print(f"\n📚 Mock Sources: {len(result['citations'])} citations")
+        print(f"\nMock Sources: {len(result['citations'])} citations")
         if result.get('mock'):
-            print("\n⚠️  Note: This is a mock response for development purposes")
+            print("\nNote: This is a mock response for development purposes")
     else:
-        print(f"❌ Mock failed: {result['error']}")
+        print(f"Mock failed: {result['error']}")
 
 if __name__ == "__main__":
     test_mock_client()

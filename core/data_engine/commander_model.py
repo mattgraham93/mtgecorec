@@ -402,7 +402,7 @@ def test_commander_model():
     archetypes = CommanderAnalyzer.suggest_archetype(commander)
     print(f"Suggested archetypes: {[a.value for a in archetypes]}")
     
-    print("✅ Commander model test complete!")
+    print("Commander model test complete!")
 
 
 if __name__ == "__main__":

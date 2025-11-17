@@ -16,10 +16,10 @@ async def debug_perplexity_response():
     engine = CommanderRecommendationEngine(use_ai=True)
     
     if not engine.ai_client:
-        print("❌ No AI client available")
+        print("No AI client available")
         return
     
-    print("🔍 Testing Perplexity card research...")
+    print("Testing Perplexity card research...")
     print("=" * 60)
     
     # Test the exact same call the app makes
@@ -34,19 +34,19 @@ async def debug_perplexity_response():
             color_identity
         )
         
-        print(f"✅ Function completed successfully")
-        print(f"📋 Returned cards: {result}")
-        print(f"📊 Total cards returned: {len(result)}")
+        print(f"Function completed successfully")
+        print(f"Returned cards: {result}")
+        print(f"Total cards returned: {len(result)}")
         
         if result:
-            print("\n🎯 Successfully extracted cards!")
+            print("\nSuccessfully extracted cards!")
             for i, card in enumerate(result, 1):
                 print(f"{i:2d}. {card}")
         else:
-            print("\n⚠️ No cards were extracted - this matches what you're seeing")
+            print("\nWarning: No cards were extracted - this matches what you're seeing")
             
     except Exception as e:
-        print(f"❌ Error during testing: {e}")
+        print(f"Error during testing: {e}")
         import traceback
         traceback.print_exc()
 

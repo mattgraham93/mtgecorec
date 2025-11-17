@@ -250,7 +250,7 @@
                                           placeholder="E.g., 'Flying creatures and artifacts', 'Graveyard recursion', 'Token generation', 'Counters and proliferate'"
                                           style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF; resize: vertical;"></textarea>
                                 <small style="color: #888; font-size: 0.8rem;">
-                                    💡 Describe the mechanics, themes, or strategies you enjoy playing. This will guide AI card research.
+                                    Describe the mechanics, themes, or strategies you enjoy playing. This will guide AI card research.
                                 </small>
                             </div>
                             
@@ -260,27 +260,27 @@
                                 <div class="d-flex flex-wrap gap-1">
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Flying and artifacts')" 
                                             style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
-                                        ✈️ Flying + Artifacts
+                                        Flying + Artifacts
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Token generation')"
                                             style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
-                                        🪙 Tokens
+                                        Tokens
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Graveyard value')"
                                             style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
-                                        ⚱️ Graveyard
+                                        Graveyard
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Spellslinger')"
                                             style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
-                                        🔮 Spells
+                                        Spells
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Counters and proliferate')"
                                             style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
-                                        ➕ Counters
+                                        Counters
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Tribal synergies')"
                                             style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
-                                        👥 Tribal
+                                        Tribal
                                     </button>
                                 </div>
                             </div>
@@ -288,7 +288,7 @@
                         
                         <button id="get-recommendations-btn" class="btn btn-primary w-100" 
                                 style="background: #2D1B4A; border-color: #B983FF;">
-                            🔍 Get AI-Powered Recommendations
+                            Get AI-Powered Recommendations
                         </button>
                     </div>
                 </div>
@@ -302,12 +302,12 @@
                                 <button id="export-scryfall-btn" class="btn btn-sm me-2" 
                                         style="background: rgba(185,131,255,0.2); border-color: #B983FF; color: #B983FF;"
                                         onclick="exportToScryfall()">
-                                    📋 Export to Scryfall
+                                    Export to Scryfall
                                 </button>
                                 <button id="export-text-btn" class="btn btn-sm" 
                                         style="background: rgba(185,131,255,0.2); border-color: #B983FF; color: #B983FF;"
                                         onclick="exportToText()">
-                                    📝 Export List
+                                    Export List
                                 </button>
                             </div>
                         </div>
@@ -316,18 +316,18 @@
                         <div id="ai-analysis-section" style="display: none;">
                             <div class="ai-analysis">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 style="color: #00FF00; margin: 0;">🤖 AI Strategic Analysis</h5>
+                                    <h5 style="color: #00FF00; margin: 0;">AI Strategic Analysis</h5>
                                     <button id="generate-summary-btn" class="btn btn-sm" 
                                             style="background: rgba(0, 255, 0, 0.2); border-color: #00FF00; color: #00FF00;"
                                             onclick="generateAnalysisSummary()">
-                                        📊 Generate Executive Summary
+                                        Generate Executive Summary
                                     </button>
                                 </div>
                                 
                                 <!-- Analysis Summary Section -->
                                 <div id="analysis-summary" style="display: none; margin-bottom: 20px;">
                                     <div style="background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.3); border-radius: 8px; padding: 15px;">
-                                        <h6 style="color: #00FF00; margin-bottom: 10px;">📋 Executive Summary</h6>
+                                        <h6 style="color: #00FF00; margin-bottom: 10px;">Executive Summary</h6>
                                         <div id="analysis-summary-content" style="color: #F3F0FF;">
                                             <div class="loading-spinner"></div> Generating summary...
                                         </div>
@@ -591,14 +591,14 @@
                                          onerror="this.parentElement.innerHTML='<div style=\\'width: 60px; height: 84px; border-radius: 6px; background: rgba(185,131,255,0.1); display: flex; align-items: center; justify-content: center; color: #888; font-size: 10px; text-align: center;\\'>No Image</div>';">
                                     ${rec.ai_suggested ? `
                                         <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid #fff;">
-                                            <span style="font-size: 10px;">🤖</span>
+                                            <span style="font-size: 10px;">AI</span>
                                         </div>
                                     ` : ''}
                                 </div>
                             ` : `
                                 <div class="card-image-small me-3" style="width: 60px; height: 84px; border-radius: 6px; background: ${rec.ai_suggested ? 'linear-gradient(135deg, rgba(78,205,196,0.1), rgba(185,131,255,0.1))' : 'rgba(185,131,255,0.1)'}; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid ${rec.ai_suggested ? 'rgba(78,205,196,0.3)' : 'rgba(185,131,255,0.3)'}; ${rec.ai_suggested ? 'animation: aiGlow 3s infinite;' : ''}">
                                     <div style="text-align: center; color: ${rec.ai_suggested ? '#4ECDC4' : '#888'};">
-                                        <div style="font-size: ${rec.ai_suggested ? '20px' : '16px'}; margin-bottom: 2px;">${rec.ai_suggested ? '🤖' : '🃏'}</div>
+                                        <div style="font-size: ${rec.ai_suggested ? '20px' : '16px'}; margin-bottom: 2px;">${rec.ai_suggested ? 'AI' : 'Card'}</div>
                                         <div style="font-size: 9px; font-weight: bold;">${rec.ai_suggested ? 'AI PICK' : 'NO IMG'}</div>
                                     </div>
                                 </div>
@@ -608,10 +608,10 @@
                                     <div>
                                         <div class="d-flex align-items-center gap-2">
                                             <strong style="color: #F3F0FF;">${rec.name}</strong>
-                                            ${rec.ai_suggested ? '<span style="color: #4ECDC4; font-size: 16px; animation: pulse 2s infinite;">🤖</span>' : ''}
+                                            ${rec.ai_suggested ? '<span style="color: #4ECDC4; font-size: 16px; animation: pulse 2s infinite;">AI</span>' : ''}
                                         </div>
                                         <span class="category-badge">${rec.category}</span>
-                                        ${hasMultipleVersions ? '<span class="versions-badge">📚 Multiple Versions</span>' : ''}
+                                        ${hasMultipleVersions ? '<span class="versions-badge">Multiple Versions</span>' : ''}
                                         <br>
                                         <small style="color: #B983FF;">
                                             ${rec.primary_version.set_name} (${rec.primary_version.set.toUpperCase()})
@@ -655,7 +655,7 @@
                                     <div>
                                         <strong style="color: #F3F0FF;">${rec.name}</strong>
                                         <span class="category-badge">${rec.category}</span>
-                                        ${hasMultipleVersions ? '<span class="versions-badge" style="font-size: 0.7rem;">📚</span>' : ''}
+                                        ${hasMultipleVersions ? '<span class="versions-badge" style="font-size: 0.7rem;">V</span>' : ''}
                                     </div>
                                     ${rec.estimated_price ? `<small style="color: #B983FF;">$${rec.estimated_price.toFixed(2)}</small>` : ''}
                                 </div>
@@ -778,7 +778,7 @@
             // Disable the button
             const btn = document.getElementById('generate-summary-btn');
             btn.disabled = true;
-            btn.innerHTML = '⏳ Generating...';
+            btn.innerHTML = 'Generating...';
             
             try {
                 // Get current analysis data
@@ -818,7 +818,7 @@
             } finally {
                 // Re-enable button
                 btn.disabled = false;
-                btn.innerHTML = '📊 Regenerate Summary';
+                btn.innerHTML = 'Regenerate Summary';
             }
         }
 

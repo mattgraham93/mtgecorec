@@ -13,7 +13,7 @@ def test_improved_card_extraction():
     """Test the improved card extraction with real-world examples."""
     engine = CommanderRecommendationEngine(use_ai=False)
     
-    print("🧪 Testing Improved Card Extraction")
+    print("Testing Improved Card Extraction")
     print("=" * 50)
     
     # Test JSON extraction
@@ -33,7 +33,7 @@ def test_improved_card_extraction():
     print(f"   Extracted: {json_cards}")
     assert len(json_cards) == 4
     assert "Skullclamp" in json_cards
-    print("   ✅ JSON extraction working")
+    print("   JSON extraction working")
     
     # Test text extraction
     print("\n2. Testing text extraction:")
@@ -49,7 +49,7 @@ def test_improved_card_extraction():
     print(f"   Extracted: {text_cards}")
     assert "Skullclamp" in text_cards
     assert "Sol Ring" in text_cards
-    print("   ✅ Text extraction working")
+    print("   Text extraction working")
     
     # Test card matching
     print("\n3. Testing database matching:")
@@ -59,9 +59,9 @@ def test_improved_card_extraction():
     matches = engine._match_cards_in_database(ai_suggestions, db_cards)
     print(f"   Matches: {matches}")
     assert len(matches) == 3  # Should match all 3 despite case/typo issues
-    print("   ✅ Database matching working")
+    print("   Database matching working")
     
-    print("\n🎯 All integration tests passed!")
+    print("\nAll integration tests passed!")
     print("\nThe improved system should now:")
     print("• Parse JSON responses from Perplexity")
     print("• Fall back to text parsing if needed") 

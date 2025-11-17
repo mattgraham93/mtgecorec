@@ -18,7 +18,7 @@ from data_engine.cosmos_driver import get_collection
 
 def test_image_urls():
     """Check what image URL structure looks like in our database."""
-    print("🔍 Testing image URL structure...")
+    print("Testing image URL structure...")
     
     try:
         # Get cards collection
@@ -35,7 +35,7 @@ def test_image_urls():
         print(f"Found {len(cards_with_images)} cards with images:")
         
         for card in cards_with_images:
-            print(f"\n📋 {card.get('name', 'Unknown')} ({card.get('set_name', 'Unknown set')}):")
+            print(f"\n{card.get('name', 'Unknown')} ({card.get('set_name', 'Unknown set')}):")
             image_uris = card.get('image_uris', {})
             print(f"   Image URIs structure: {list(image_uris.keys())}")
             
@@ -59,10 +59,10 @@ def test_image_urls():
             else:
                 print("   No image_uris found!")
         
-        print("\n✅ Image URL structure test completed!")
+        print("\nImage URL structure test completed!")
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f"Test failed: {e}")
         import traceback
         traceback.print_exc()
 

@@ -38,7 +38,7 @@ def extract_cards_from_text(content: str):
     
     suggested_cards = []
     
-    print("🔍 Testing extraction patterns...")
+    print("Testing extraction patterns...")
     
     for i, pattern in enumerate(patterns, 1):
         print(f"\nPattern {i}: {pattern}")
@@ -63,13 +63,13 @@ Alela, Artful Provocateur is one of the most popular Esper () commanders out the
 
 This faerie dominates if it survives, and I recommend Skullclamp for massive card draw. You should also consider Swords to Plowshares for removal."""
 
-print("🧪 Testing improved card extraction...")
+print("Testing improved card extraction...")
 print("\nTest content:")
 print(test_content)
 print("\n" + "="*50)
 
 extracted_cards = extract_cards_from_text(test_content)
 
-print(f"\n✅ Final extracted cards ({len(extracted_cards)}):")
+print(f"\nFinal extracted cards ({len(extracted_cards)}):")
 for i, card in enumerate(extracted_cards, 1):
     print(f"{i}. '{card}'")

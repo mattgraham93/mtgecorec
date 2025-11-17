@@ -62,16 +62,16 @@ class PerplexityClient:
                 query="Magic: The Gathering Commander format",
                 max_results=3
             )
-            logger.info("✅ Perplexity Search API connection successful")
+            logger.info("Perplexity Search API connection successful")
             
             chat_response = self.client.chat.completions.create(
                 model="sonar",
                 messages=[{"role": "user", "content": "What is Magic: The Gathering?"}]
             )
-            logger.info("✅ Perplexity Chat API connection successful")
+            logger.info("Perplexity Chat API connection successful")
             return True
         except Exception as e:
-            logger.error(f"❌ Perplexity API connection test failed: {e}")
+            logger.error(f"Perplexity API connection test failed: {e}")
             raise
 
     def _search_commander_info(self, commander_name: str, max_results: int = 10) -> Dict[str, Any]:
@@ -295,7 +295,7 @@ class PerplexityClient:
         
         try:
             # Step 1: Use Search API to gather comprehensive information
-            logger.info(f"🔍 Gathering information about {commander_name}...")
+            logger.info(f"Gathering information about {commander_name}...")
             search_data = self._search_commander_info(commander_name, max_results=15)
             
             # Step 2: Use gathered information to create a more informed prompt
@@ -334,7 +334,7 @@ class PerplexityClient:
             }]
             
             # Step 3: Use Chat API with enhanced context for analysis
-            logger.info(f"💭 Generating analysis for {commander_name}...")
+            logger.info(f"Generating analysis for {commander_name}...")
             response = self._make_request_with_retry(enhanced_messages, model="sonar-pro")
             
             # Serialize search results properly for JSON response
@@ -674,13 +674,13 @@ class PerplexityClient:
 
 def test_perplexity_client():
     """Test the Perplexity client with proper error handling."""
-    print("🔧 Testing Perplexity AI integration...")
+    print("Testing Perplexity AI integration...")
     
     try:
         # Test API key availability
         api_key = os.environ.get('PERPLEXITY_API_KEY')
         if not api_key:
-            print("❌ PERPLEXITY_API_KEY not found in environment")
+            print("PERPLEXITY_API_KEY not found in environment")
             return False
         
         print(f"🔑 API Key found: {api_key[:10]}...")
@@ -689,39 +689,39 @@ def test_perplexity_client():
         client = PerplexityClient(use_mock=False)  # Force real API test
         
         # Test with a popular commander
-        print("🎯 Testing commander analysis...")
+        print("Testing commander analysis...")
         result = client.analyze_commander_synergies("Atraxa, Praetors' Voice")
         
         if result['success']:
-            print("✅ Perplexity AI integration successful!")
-            print("\n📊 Analysis Preview:")
+            print("Perplexity AI integration successful!")
+            print("\nAnalysis Preview:")
             preview = result['analysis'][:500] + "..." if len(result['analysis']) > 500 else result['analysis']
             print(preview)
             
             if result.get('citations'):
-                print(f"\n📚 Sources: {len(result['citations'])} citations found")
+                print(f"\nSources: {len(result['citations'])} citations found")
             
             if result.get('mock'):
-                print("\n⚠️  Note: Using mock response (API unavailable)")
+                print("\nNote: Using mock response (API unavailable)")
             else:
                 print("\n🌐 Real API response received!")
                 
             return True
         else:
-            print(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
+            print(f"Analysis failed: {result.get('error', 'Unknown error')}")
             return False
             
     except perplexity.AuthenticationError:
-        print("❌ Authentication failed - check your API key")
+        print("Authentication failed - check your API key")
         return False
     except perplexity.APIConnectionError as e:
-        print(f"❌ Connection failed: {e}")
-        print("💡 This might be a network issue - using mock responses for now")
+        print(f"Connection failed: {e}")
+        print("This might be a network issue - using mock responses for now")
         return False
     except Exception as e:
         logger.error(f"Test failed with unexpected error: {e}")
-        print(f"❌ Unexpected error: {type(e).__name__}: {e}")
-        print("\n💡 Check your API key and network connection")
+        print(f"Unexpected error: {type(e).__name__}: {e}")
+        print("\nCheck your API key and network connection")
         return False
 
 

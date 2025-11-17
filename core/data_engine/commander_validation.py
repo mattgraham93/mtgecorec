@@ -305,7 +305,7 @@ def test_validator():
     print(f"Color identity validation - Legal card: {legal_check[0]}")
     print(f"Color identity validation - Illegal card: {illegal_check[0]}")
     
-    print("✅ Commander format validator test complete!")
+    print("Commander format validator test complete!")
 
 
 if __name__ == "__main__":

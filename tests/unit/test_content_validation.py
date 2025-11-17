@@ -23,16 +23,16 @@ def test_content_validation():
         ("Programming content 3", "Python code tutorial with variables and loops", False),
     ]
     
-    print("🧪 Testing MTG content validation...\n")
+    print("Testing MTG content validation...\n")
     
     for name, content, expected in test_cases:
         result = engine._is_mtg_related_content(content)
-        status = "✅" if result == expected else "❌"
+        status = "✓" if result == expected else "✗"
         print(f"{status} {name}: {result} (expected {expected})")
         print(f"   Content: {content[:80]}...")
         print()
     
-    print("🎯 Testing with actual bad response we got:")
+    print("Testing with actual bad response we got:")
     bad_response = """# 2.3 - Print cards as card names (not numbers)
 
 If you want to go for an extra challenge though you could add in some if statements to print out a nicer form like "6 of diamonds, jack of hearts" instead.

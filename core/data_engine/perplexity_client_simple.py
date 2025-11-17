@@ -105,16 +105,16 @@ def test_simple_client():
         result = client.analyze_commander_synergies("Atraxa, Praetors' Voice")
         
         if result['success']:
-            print("✅ Simple client working!")
-            print("\n📊 Analysis Preview:")
+            print("Simple client working!")
+            print("\nAnalysis Preview:")
             print(result['analysis'][:500] + "..." if len(result['analysis']) > 500 else result['analysis'])
             if result.get('citations'):
-                print(f"\n📚 Sources: {len(result['citations'])} citations found")
+                print(f"\nSources: {len(result['citations'])} citations found")
         else:
-            print(f"❌ Analysis failed: {result['error']}")
+            print(f"Analysis failed: {result['error']}")
             
     except Exception as e:
-        print(f"❌ Simple client test failed: {e}")
+        print(f"Simple client test failed: {e}")
 
 if __name__ == "__main__":
     test_simple_client()

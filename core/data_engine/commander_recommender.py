@@ -408,31 +408,31 @@ class CommanderRecommendationEngine:
                     
                 # If user provided preferred mechanics, get AI card research
                 if request.preferred_mechanics:
-                    print(f"🤖 Researching cards for mechanics: {request.preferred_mechanics}")
+                    print(f"Researching cards for mechanics: {request.preferred_mechanics}")
                     mechanic_research = await self._research_cards_for_mechanics(
                         commander.name, 
                         request.preferred_mechanics,
                         commander.color_identity
                     )
                     ai_card_suggestions = mechanic_research
-                    print(f"✨ AI suggested {len(ai_card_suggestions)} cards based on preferred mechanics")
+                    print(f"AI suggested {len(ai_card_suggestions)} cards based on preferred mechanics")
                     if ai_card_suggestions:
-                        print(f"📋 AI suggested cards: {ai_card_suggestions}")
+                        print(f"AI suggested cards: {ai_card_suggestions}")
                     else:
-                        print("⚠️ No valid cards extracted from AI response")
+                        print("Warning: No valid cards extracted from AI response")
                     
             except Exception as e:
                 print(f"AI analysis failed: {e}")
         
         # Get all legal cards for this commander
-        print("📚 Loading card database...")
+        print("Loading card database...")
         all_cards = self.get_card_database()
         legal_cards = self.filter_cards_by_identity(all_cards, commander.color_identity)
         
-        print(f"✅ Found {len(legal_cards)} legal cards for {commander.name}")
+        print(f"Found {len(legal_cards)} legal cards for {commander.name}")
         
         # Group cards by name to ensure singleton behavior
-        print("🔗 Grouping cards by name...")
+        print("Grouping cards by name...")
         card_groups = defaultdict(list)
         for card in legal_cards:
             # Skip cards in exclude list
@@ -447,10 +447,10 @@ class CommanderRecommendationEngine:
         
         # Match AI suggestions with database (only if we have AI suggestions)
         if ai_card_suggestions:
-            print("🎯 Matching AI suggestions with database...")
+            print("Matching AI suggestions with database...")
             all_card_names = list(card_groups.keys())
             matched_ai_cards = self._match_cards_in_database(ai_card_suggestions, all_card_names)
-            print(f"✨ Matched {len(matched_ai_cards)}/{len(ai_card_suggestions)} AI suggested cards")
+            print(f"Matched {len(matched_ai_cards)}/{len(ai_card_suggestions)} AI suggested cards")
         else:
             matched_ai_cards = []
         
@@ -468,7 +468,7 @@ class CommanderRecommendationEngine:
             
             # Boost score for AI-suggested cards based on improved matching
             if card_name in matched_ai_cards:
-                print(f"🤖 AI suggested card found: {card_name}")
+                print(f"AI suggested card found: {card_name}")
                 recommendation.confidence_score = min(1.0, recommendation.confidence_score + 0.3)
                 recommendation.ai_suggested = True
                 if not recommendation.reasons:
@@ -513,8 +513,8 @@ class CommanderRecommendationEngine:
         if ai_card_suggestions:
             found_ai_cards = [rec.card_name for rec in balanced_recommendations if rec.ai_suggested]
             missed_ai_cards = [card for card in ai_card_suggestions if card not in matched_ai_cards]
-            print(f"🎯 AI cards in final recommendations: {found_ai_cards}")
-            print(f"❌ AI cards NOT matched: {missed_ai_cards}")
+            print(f"AI cards in final recommendations: {found_ai_cards}")
+            print(f"AI cards NOT matched: {missed_ai_cards}")
         
         # Determine power level
         avg_confidence = sum(rec.confidence_score for rec in balanced_recommendations) / len(balanced_recommendations) if balanced_recommendations else 0
@@ -630,7 +630,7 @@ Recommend Commander cards for "{commander_name}" matching: {preferred_mechanics}
                             'content': content
                         }
                     else:
-                        print(f"⚠️ Search content not MTG-related: {content[:200]}...")
+                        print(f"Warning: Search content not MTG-related: {content[:200]}...")
                         search_result = {'success': False, 'error': 'Content not MTG-related'}
                 else:
                     search_result = {'success': False, 'error': 'No results returned'}
@@ -641,7 +641,7 @@ Recommend Commander cards for "{commander_name}" matching: {preferred_mechanics}
             
             # If Search API failed OR content is bad, try Chat API with more direct control
             if not search_result.get('success'):
-                print("🔄 Search API failed, trying Chat API with explicit instructions...")
+                print("Search API failed, trying Chat API with explicit instructions...")
                 try:
                     chat_response = self.ai_client.client.chat.completions.create(
                         model="sonar",
@@ -691,27 +691,27 @@ STRICT REQUIREMENTS:
                     if chat_response and chat_response.choices:
                         content = chat_response.choices[0].message.content
                         search_result = {'success': True, 'content': content}
-                        print(f"✅ Chat API returned: {content[:200]}...")
+                        print(f"Chat API returned: {content[:200]}...")
                     
                 except Exception as chat_e:
-                    print(f"❌ Chat API also failed: {chat_e}")
+                    print(f"Chat API also failed: {chat_e}")
                     search_result = {'success': False, 'error': str(chat_e)}
             
             if search_result.get('success') and search_result.get('content'):
                 content = search_result['content']
                 
                 # Debug: Show what Perplexity actually returned
-                print(f"🔍 Raw Perplexity response (first 500 chars): {content[:500]}...")
+                print(f"Raw Perplexity response (first 500 chars): {content[:500]}...")
                 
                 # Try to extract cards from JSON format first
                 suggested_cards = self._extract_cards_from_json(content)
                 
                 # If JSON parsing failed, fall back to text extraction
                 if not suggested_cards:
-                    print("⚠️ JSON extraction failed, trying text extraction...")
+                    print("Warning: JSON extraction failed, trying text extraction...")
                     suggested_cards = self._extract_cards_from_text(content)
                 
-                print(f"🔍 Extracted {len(suggested_cards)} potential cards: {suggested_cards[:5]}...")  # Debug first 5
+                print(f"Extracted {len(suggested_cards)} potential cards: {suggested_cards[:5]}...")  # Debug first 5
                 
                 # Log query value assessment for cost optimization
                 self._log_query_value_assessment(commander_name, preferred_mechanics, len(suggested_cards), content)
@@ -812,11 +812,11 @@ STRICT REQUIREMENTS:
                             valid_cards.append(line)
                     
                     if valid_cards:
-                        print(f"✅ Delimited format extraction found {len(valid_cards)} cards")
+                        print(f"Delimited format extraction found {len(valid_cards)} cards")
                         return valid_cards
         
         except Exception as e:
-            print(f"⚠️ Delimited format parsing failed: {e}")
+            print(f"Warning: Delimited format parsing failed: {e}")
         
         # Format 2: CSV format (comma-separated on one line)
         try:
@@ -833,11 +833,11 @@ STRICT REQUIREMENTS:
                         cards = [card.strip() for card in match.split(',')]
                         valid_cards = [card for card in cards if self._is_valid_card_name(card)]
                         if len(valid_cards) >= 3:
-                            print(f"✅ CSV format extraction found {len(valid_cards)} cards")
+                            print(f"CSV format extraction found {len(valid_cards)} cards")
                             return valid_cards
         
         except Exception as e:
-            print(f"⚠️ CSV format parsing failed: {e}")
+            print(f"Warning: CSV format parsing failed: {e}")
         
         # Format 3: Numbered list (1. Card Name, 2. Card Name, etc.)
         try:
@@ -851,11 +851,11 @@ STRICT REQUIREMENTS:
                     valid_cards.append(card)
             
             if valid_cards:
-                print(f"✅ Numbered list extraction found {len(valid_cards)} cards")
+                print(f"Numbered list extraction found {len(valid_cards)} cards")
                 return valid_cards
         
         except Exception as e:
-            print(f"⚠️ Numbered list parsing failed: {e}")
+            print(f"Warning: Numbered list parsing failed: {e}")
         
         # Fallback to JSON extraction
         try:
@@ -877,12 +877,12 @@ STRICT REQUIREMENTS:
                         valid_cards.append(card.strip())
                 
                 if valid_cards:
-                    print(f"✅ JSON extraction found {len(valid_cards)} cards")
+                    print(f"JSON extraction found {len(valid_cards)} cards")
                     return valid_cards
                 
         except (json.JSONDecodeError, ValueError, KeyError) as e:
-            print(f"❌ JSON parsing failed: {e}")
-            print(f"🔍 Content that failed to parse: {content[:200]}...")
+            print(f"JSON parsing failed: {e}")
+            print(f"Content that failed to parse: {content[:200]}...")
         
         return []
 
@@ -946,7 +946,7 @@ STRICT REQUIREMENTS:
             
             if exact_matches:
                 matched_cards.append(exact_matches[0])
-                print(f"✅ Exact match: '{ai_card}' -> '{exact_matches[0]}'")
+                print(f"Exact match: '{ai_card}' -> '{exact_matches[0]}'")
                 continue
             
             # Try fuzzy matching for typos
@@ -954,10 +954,10 @@ STRICT REQUIREMENTS:
             
             if close_matches:
                 matched_cards.append(close_matches[0])
-                print(f"✅ Fuzzy match: '{ai_card}' -> '{close_matches[0]}'")
+                print(f"Fuzzy match: '{ai_card}' -> '{close_matches[0]}'")
                 continue
                 
-            print(f"❌ No match found for: '{ai_card}'")
+            print(f"No match found for: '{ai_card}'")
         
         return matched_cards
 
@@ -1026,13 +1026,13 @@ STRICT REQUIREMENTS:
             value_level = "LOW_VALUE"
         
         # Log assessment
-        print(f"💰 PERPLEXITY QUERY ASSESSMENT: {value_level}")
+        print(f"PERPLEXITY QUERY ASSESSMENT: {value_level}")
         print(f"   Commander: {commander_name}")
         print(f"   Mechanics: {mechanics}")
         print(f"   Cards Extracted: {cards_extracted}")
         print(f"   Value Score: {value_score}")
         if issues:
-            print(f"   ⚠️  Issues: {', '.join(issues)}")
+            print(f"   Issues: {', '.join(issues)}")
         print(f"   Response Preview: {response_content[:150]}...")
         
         # Alert for consistently low-value queries
@@ -1041,7 +1041,7 @@ STRICT REQUIREMENTS:
 
 async def test_recommendation_engine():
     """Test the recommendation engine with a sample commander."""
-    print("🎯 Testing Commander Recommendation Engine...")
+    print("Testing Commander Recommendation Engine...")
     
     engine = CommanderRecommendationEngine(use_ai=True)
     

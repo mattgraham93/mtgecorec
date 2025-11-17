@@ -15,7 +15,7 @@ from data_engine.commander_recommender import CommanderRecommendationEngine, Rec
 
 async def test_mechanic_research():
     """Test the new AI mechanic research feature."""
-    print("🧪 Testing AI Mechanic Research Feature...")
+    print("Testing AI Mechanic Research Feature...")
     
     # Create engine with AI enabled
     engine = CommanderRecommendationEngine(use_ai=True)
@@ -28,22 +28,22 @@ async def test_mechanic_research():
         preferred_mechanics="Flying creatures and artifacts that create tokens, faerie synergies"
     )
     
-    print(f"🎯 Commander: {request.commander_name}")
-    print(f"🎯 Preferred Mechanics: {request.preferred_mechanics}")
-    print(f"🎯 Power Level: {request.power_level}")
-    print(f"🎯 Budget Limit: ${request.budget_limit}")
+    print(f"Commander: {request.commander_name}")
+    print(f"Preferred Mechanics: {request.preferred_mechanics}")
+    print(f"Power Level: {request.power_level}")
+    print(f"Budget Limit: ${request.budget_limit}")
     print("\n" + "="*50 + "\n")
     
     try:
         # Generate recommendations
         recommendations = await engine.generate_recommendations(request)
         
-        print("✅ Recommendations generated successfully!")
+        print("Recommendations generated successfully!")
         print(f"Commander: {recommendations.commander.name}")
         print(f"Total recommendations: {len(recommendations.recommendations)}")
         
         # Show top AI-influenced recommendations
-        print(f"\n🤖 Top 10 Recommendations (with AI influence):")
+        print(f"\nTop 10 Recommendations (with AI influence):")
         for i, rec in enumerate(recommendations.recommendations[:10], 1):
             ai_influenced = "🔥 AI PICK" if any("AI recommended" in reason for reason in (rec.reasons or [])) else ""
             print(f"{i:2d}. {rec.card_name:<30} (Score: {rec.confidence_score:.3f}) {ai_influenced}")
@@ -52,7 +52,7 @@ async def test_mechanic_research():
             if rec.reasons:
                 for reason in rec.reasons:
                     if "AI recommended" in reason:
-                        print(f"    💡 {reason}")
+                        print(f"    {reason}")
                     elif i <= 3:  # Show all reasons for top 3
                         print(f"    • {reason}")
         
@@ -60,7 +60,7 @@ async def test_mechanic_research():
         ai_influenced_count = sum(1 for rec in recommendations.recommendations 
                                 if rec.reasons and any("AI recommended" in reason for reason in rec.reasons))
         
-        print(f"\n📊 Summary:")
+        print(f"\nSummary:")
         print(f"   • Total recommendations: {len(recommendations.recommendations)}")
         print(f"   • AI-influenced cards: {ai_influenced_count}")
         print(f"   • Power level: {recommendations.power_level_assessment}")
@@ -68,10 +68,10 @@ async def test_mechanic_research():
         if recommendations.estimated_total_cost:
             print(f"   • Estimated cost: ${recommendations.estimated_total_cost:.2f}")
         
-        print("\n✅ Mechanic research test completed successfully!")
+        print("\nMechanic research test completed successfully!")
         
     except Exception as e:
-        print(f"❌ Test failed with error: {e}")
+        print(f"Test failed with error: {e}")
         import traceback
         traceback.print_exc()
 

@@ -262,7 +262,7 @@ class TestPerplexityIntegration(unittest.TestCase):
 
 def run_card_extraction_tests():
     """Run all card extraction tests."""
-    print("🧪 Running AI Card Extraction Tests...")
+    print("Running AI Card Extraction Tests...")
     print("=" * 60)
     
     # Run the basic validation tests
@@ -272,10 +272,10 @@ def run_card_extraction_tests():
     result = runner.run(suite)
     
     if result.wasSuccessful():
-        print("\n✅ All card extraction tests passed!")
+        print("\nAll card extraction tests passed!")
         return True
     else:
-        print(f"\n❌ {len(result.failures + result.errors)} test(s) failed")
+        print(f"\n{len(result.failures + result.errors)} test(s) failed")
         return False
 
 
@@ -284,10 +284,10 @@ if __name__ == "__main__":
     success = run_card_extraction_tests()
     
     if success:
-        print("\n🎯 Tests passed! The card extraction logic is working correctly.")
+        print("\nTests passed! The card extraction logic is working correctly.")
         print("\nNext steps:")
         print("1. Update Perplexity prompting to request JSON format")
         print("2. Add case-insensitive matching in the main code")  
         print("3. Add fuzzy matching for typos")
     else:
-        print("\n🔧 Fix the failing tests before proceeding.")
+        print("\nFix the failing tests before proceeding.")

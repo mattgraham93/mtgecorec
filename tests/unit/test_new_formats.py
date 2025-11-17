@@ -52,22 +52,22 @@ def test_extraction_formats():
     
     engine = CommanderRecommendationEngine(use_ai=False)
     
-    print("🧪 Testing new extraction formats...\n")
+    print("Testing new extraction formats...\n")
     
     print("1. Testing delimited format (CARDS_START/CARDS_END):")
     print(f"Content: {delimited_content[:100]}...")
     cards = engine._extract_cards_from_json(delimited_content)
-    print(f"✅ Extracted: {cards}\n")
+    print(f"Extracted: {cards}\n")
     
     print("2. Testing CSV format:")
     print(f"Content: {csv_content[:100]}...")
     cards = engine._extract_cards_from_json(csv_content)
-    print(f"✅ Extracted: {cards}\n")
+    print(f"Extracted: {cards}\n")
     
     print("3. Testing numbered format:")
     print(f"Content: {numbered_content[:100]}...")
     cards = engine._extract_cards_from_json(numbered_content)
-    print(f"✅ Extracted: {cards}\n")
+    print(f"Extracted: {cards}\n")
 
 if __name__ == "__main__":
     test_extraction_formats()

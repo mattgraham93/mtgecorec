@@ -726,10 +726,10 @@ def api_generate_analysis_summary(commander_name):
       
       Please provide a brief executive summary (3-4 paragraphs max) that covers:
       
-      1. **🎯 Deck Identity**: What this commander does and its core strategy
-      2. **🔧 Key Synergies**: The most important card interactions and engines  
-      3. **💪 Strengths & Weaknesses**: What the deck does well and potential vulnerabilities
-      4. **🎮 Play Pattern**: How games typically unfold with this commander
+      1. **Deck Identity**: What this commander does and its core strategy
+      2. **Key Synergies**: The most important card interactions and engines  
+      3. **Strengths & Weaknesses**: What the deck does well and potential vulnerabilities
+      4. **Play Pattern**: How games typically unfold with this commander
       
       Keep it concise but informative - this is for someone who wants to quickly understand the deck without reading the full analysis.
       """

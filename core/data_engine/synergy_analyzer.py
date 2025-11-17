@@ -435,7 +435,7 @@ def test_synergy_analyzer():
     print(f"Overall synergy score: {analysis['synergy_score']:.2f}")
     print(f"Dominant themes: {analysis['dominant_themes']}")
     
-    print("✅ Synergy analyzer test complete!")
+    print("Synergy analyzer test complete!")
 
 
 if __name__ == "__main__":

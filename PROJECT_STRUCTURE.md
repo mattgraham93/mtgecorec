@@ -19,14 +19,14 @@ mtgecorec/
 ```
 
 ## Key Changes Made:
-- ✅ Moved all test_*.py files to tests/unit/
-- ✅ Moved debug_*.py files to scripts/  
-- ✅ Removed duplicate src/ directory and redundant mtgecorec/ nesting
-- ✅ Cleaned up __pycache__ directories
-- ✅ Removed empty directories (data/, docs/, tests/integration/)
-- ✅ Fixed misplaced files (moved card_explore.html to templates/)
-- ✅ Removed unused API blueprints and cleanup scripts
-- ✅ Organized into clean, flat Python structure
+- Moved all test_*.py files to tests/unit/
+- Moved debug_*.py files to scripts/  
+- Removed duplicate src/ directory and redundant mtgecorec/ nesting
+- Cleaned up __pycache__ directories
+- Removed empty directories (data/, docs/, tests/integration/)
+- Fixed misplaced files (moved card_explore.html to templates/)
+- Removed unused API blueprints and cleanup scripts
+- Organized into clean, flat Python structure
 
 ## To Run:
 ```bash
