@@ -14,7 +14,14 @@ from core.data_engine.auth_decorators import login_required, ai_query_required
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Set secret key for sessions (in production, use environment variable)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-key-change-in-production')
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-key-change-in-production-very-long-secret')
+
+# Configure session to be more permissive for development
+app.config.update(
+    SESSION_COOKIE_SECURE=False,  # Allow cookies over HTTP in development
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',  # More permissive for development
+)
 
 # Initialize user manager
 user_manager = UserManager()
@@ -37,8 +44,15 @@ def login():
             session['user_id'] = user['user_id']
             session['username'] = user['username']
             session['user_email'] = user['email']
+            session.permanent = True  # Make session permanent
+            print(f"Login successful for {user['username']}, session: {dict(session)}")
             flash(f'Welcome back, {user["username"]}!', 'success')
-            return redirect(url_for('index'))
+            
+            # Check if user was trying to access a specific page
+            next_page = request.args.get('next')
+            if next_page and next_page.startswith('/'):
+                return redirect(next_page)
+            return redirect(url_for('commander_deck_builder'))  # Go directly to commander after login
          else:
             flash('Invalid username or password', 'error')
       except Exception as e:
@@ -94,6 +108,22 @@ def logout():
    flash(f'Goodbye, {username}!', 'info')
    return redirect(url_for('index'))
 
+@app.route('/status')
+def status():
+   """Simple status check to see if user is logged in."""
+   if 'user_id' in session:
+      return jsonify({
+         'logged_in': True,
+         'username': session.get('username'),
+         'user_id': session.get('user_id'),
+         'session_data': dict(session)
+      })
+   else:
+      return jsonify({
+         'logged_in': False,
+         'session_data': dict(session)
+      })
+
 @app.route('/profile')
 @login_required
 def profile():
@@ -123,7 +153,7 @@ def profile():
 # Main page routes
 @app.route('/')
 def index():
-   print('Request for index page received')
+   print(f'Request for index page received, session: {dict(session)}')
    return render_template('index.html')
 
 @app.route('/favicon.ico')
@@ -620,6 +650,7 @@ def api_cards_summary():
 
 
 @app.route('/commander')
+@login_required
 def commander_deck_builder():
    """Commander deck builder page."""
    return render_template('commander.html')
@@ -635,7 +666,7 @@ def api_search_commanders():
       client = cosmos_driver.get_mongo_client()
       collection = cosmos_driver.get_collection(client, 'mtgecorec', 'cards')
       
-      # Search for legendary creatures and planeswalkers
+      # Search for legendary creatures and planeswalkers - get unique commanders only
       search_query = {
          'name': {'$regex': query, '$options': 'i'},
          'legalities.commander': {'$in': ['legal', 'restricted']},
@@ -646,16 +677,100 @@ def api_search_commanders():
          ]
       }
       
-      commanders = list(collection.find(search_query, {
-         'name': 1, 'mana_cost': 1, 'colors': 1, 'type_line': 1,
-         'oracle_text': 1, 'power': 1, 'toughness': 1, 'image_uris': 1,
-         '_id': 0
-      }).limit(20))
+      # Use aggregation pipeline to get unique commanders with best image
+      commanders_pipeline = [
+         {'$match': search_query},
+         {'$group': {
+            '_id': '$name',
+            'commander': {'$first': '$$ROOT'},
+            'best_image': {
+               '$first': {
+                  '$cond': [
+                     {'$ifNull': ['$image_uris.normal', False]},
+                     '$image_uris',
+                     None
+                  ]
+               }
+            }
+         }},
+         {'$project': {
+            '_id': 0,
+            'name': '$_id',
+            'mana_cost': '$commander.mana_cost',
+            'colors': '$commander.colors',
+            'type_line': '$commander.type_line',
+            'oracle_text': '$commander.oracle_text',
+            'power': '$commander.power',
+            'toughness': '$commander.toughness',
+            'image_uris': {
+               '$cond': [
+                  {'$ifNull': ['$best_image', False]},
+                  '$best_image',
+                  '$commander.image_uris'
+               ]
+            }
+         }},
+         {'$sort': {'name': 1}},
+         {'$limit': 20}
+      ]
+      
+      commanders = list(collection.aggregate(commanders_pipeline))
       
       return jsonify({'commanders': commanders})
       
    except Exception as e:
       print(f'Error searching commanders: {e}')
+      return jsonify({'error': str(e)}), 500
+
+@app.route('/api/commanders/<commander_name>/printings')
+def api_get_commander_printings(commander_name):
+   """Get all printings/versions of a specific commander."""
+   try:
+      client = cosmos_driver.get_mongo_client()
+      collection = cosmos_driver.get_collection(client, 'mtgecorec', 'cards')
+      
+      # Get all versions of this commander
+      printings_query = {
+         'name': commander_name,
+         'legalities.commander': {'$in': ['legal', 'restricted']},
+         '$or': [
+            {'type_line': {'$regex': 'Legendary.*Creature', '$options': 'i'}},
+            {'type_line': {'$regex': 'Legendary.*Planeswalker', '$options': 'i'}},
+            {'oracle_text': {'$regex': 'can be your commander', '$options': 'i'}}
+         ]
+      }
+      
+      printings = list(collection.find(printings_query, {
+         '_id': 0,  # Exclude ObjectId to avoid JSON serialization issues
+         'name': 1,
+         'set_name': 1,
+         'set': 1,
+         'collector_number': 1,
+         'rarity': 1,
+         'image_uris': 1,
+         'prices': 1,
+         'released_at': 1,
+         'mana_cost': 1,
+         'type_line': 1,
+         'oracle_text': 1,
+         'power': 1,
+         'toughness': 1
+      }).sort([('released_at', -1)]))
+      
+      # Get the primary version (most recent or best image)
+      primary_version = None
+      if printings:
+         # Prefer versions with good images, then most recent
+         primary_version = next((p for p in printings if p.get('image_uris', {}).get('normal')), printings[0])
+      
+      return jsonify({
+         'commander': primary_version,
+         'printings': printings,
+         'total_versions': len(printings)
+      })
+      
+   except Exception as e:
+      print(f'Error getting commander printings: {e}')
       return jsonify({'error': str(e)}), 500
 
 @app.route('/api/commanders/<commander_name>/recommendations')

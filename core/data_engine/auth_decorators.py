@@ -17,11 +17,12 @@ def login_required(f):
     """Decorator to require user login for a route."""
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
+        print(f"login_required check: session = {dict(session)}")
         if 'user_id' not in session:
             if request.is_json:
                 return jsonify({'error': 'Authentication required', 'login_required': True}), 401
             flash('Please log in to access this feature.', 'warning')
-            return redirect(url_for('login'))
+            return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 

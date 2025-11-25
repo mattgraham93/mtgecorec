@@ -114,6 +114,7 @@ class CommanderRecommendationEngine:
                 'name': 1, 'mana_cost': 1, 'cmc': 1, 'colors': 1,
                 'type_line': 1, 'oracle_text': 1, 'power': 1, 'toughness': 1,
                 'rarity': 1, 'set': 1, 'legalities': 1, 'price': 1,
+                'image_uris': 1, 'set_name': 1, 'collector_number': 1, 'released_at': 1,
                 '_id': 0
             }).limit(50000))  # Reasonable limit for performance
             

@@ -182,6 +182,71 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(185, 131, 255, 0.15);
         }
+        
+        /* Equal height columns */
+        .equal-height-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        
+        .equal-height-col {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .commander-search,
+        .filters {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+        }
+        
+        /* Printing item styles */
+        .printing-item {
+            background: rgba(185, 131, 255, 0.1);
+            border: 1px solid rgba(185, 131, 255, 0.2);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .printing-item:hover {
+            background: rgba(185, 131, 255, 0.2);
+            border-color: rgba(185, 131, 255, 0.4);
+        }
+        
+        .printing-item.active {
+            background: rgba(185, 131, 255, 0.3);
+            border-color: #B983FF;
+        }
+        
+        .printing-info {
+            flex: 1;
+        }
+        
+        .printing-set {
+            color: #F3F0FF;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .printing-details {
+            color: #888;
+            font-size: 0.8rem;
+        }
+        
+        .printing-price {
+            color: #B983FF;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
     </style>
 </head>
 <html>
@@ -190,9 +255,10 @@
     
     <main style="margin-top: 4.8rem;">
         <div class="container-fluid">
-            <div class="row">
+            <!-- Top Selection Row -->
+            <div class="row mb-4 equal-height-row">
                 <!-- Commander Selection Panel -->
-                <div class="col-md-4">
+                <div class="col-md-6 equal-height-col">
                     <div class="commander-search">
                         <h3 class="text-center mb-3" style="color: #B983FF;">Choose Your Commander</h3>
                         
@@ -204,19 +270,54 @@
                                    style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
                         </div>
                         
-                        <div id="commander-results" style="max-height: 400px; overflow-y: auto;">
+                        <div id="commander-results" style="max-height: 300px; overflow-y: auto;">
                             <!-- Commander search results will appear here -->
                         </div>
                         
                         <div id="selected-commander" style="display: none;">
                             <h5 style="color: #B983FF;">Selected Commander:</h5>
                             <div id="commander-display"></div>
+                            
+                            <!-- Commander Card Image and Printings Side-by-Side -->
+                            <div id="commander-image-section" class="mt-3">
+                                <div class="row">
+                                    <!-- Printings List (Left) -->
+                                    <div class="col-md-5">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <small style="color: #B983FF; font-weight: bold;">Available Printings:</small>
+                                            <small id="printings-count" style="color: #888;"></small>
+                                        </div>
+                                        <div id="commander-printings" 
+                                             style="height: 350px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;">
+                                            <!-- Printings will be loaded here -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Commander Image (Right) -->
+                                    <div class="col-md-7">
+                                        <div class="text-center" style="height: 350px; display: flex; align-items: center; justify-content: center;">
+                                            <div>
+                                                <img id="commander-image" 
+                                                     class="img-fluid" 
+                                                     style="max-width: 250px; max-height: 330px; border-radius: 12px; border: 2px solid rgba(185,131,255,0.3); display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"
+                                                     alt="Commander card"
+                                                     onerror="this.style.display='none'; document.getElementById('commander-image-loading').innerHTML='Image unavailable';">
+                                                <div id="commander-image-loading" style="display: none; color: #888;">
+                                                    Loading image...
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <!-- Recommendation Filters -->
+                </div>
+
+                <!-- Recommendation Filters -->
+                <div class="col-md-6 equal-height-col">
                     <div class="filters" id="recommendation-filters" style="display: none;">
-                        <h5 style="color: #B983FF;">Preferences</h5>
+                        <h3 class="text-center mb-3" style="color: #B983FF;">Preferences</h3>
                         
                         <div class="mb-3">
                             <label class="form-label" style="color: #F3F0FF;">Budget per Card</label>
@@ -246,11 +347,11 @@
                             <div class="mb-2">
                                 <textarea id="preferred-mechanics" 
                                           class="form-control" 
-                                          rows="3"
-                                          placeholder="E.g., 'Flying creatures and artifacts', 'Graveyard recursion', 'Token generation', 'Counters and proliferate'"
+                                          rows="2"
+                                          placeholder="E.g., 'Flying creatures and artifacts', 'Graveyard recursion', 'Token generation'"
                                           style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF; resize: vertical;"></textarea>
                                 <small style="color: #888; font-size: 0.8rem;">
-                                    Describe the mechanics, themes, or strategies you enjoy playing. This will guide AI card research.
+                                    Describe strategies you enjoy - guides AI card research.
                                 </small>
                             </div>
                             
@@ -259,27 +360,27 @@
                                 <small style="color: #B983FF; display: block; margin-bottom: 8px;">Quick Select:</small>
                                 <div class="d-flex flex-wrap gap-1">
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Flying and artifacts')" 
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
                                         Flying + Artifacts
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Token generation')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
                                         Tokens
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Graveyard value')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
                                         Graveyard
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Spellslinger')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
                                         Spells
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Counters and proliferate')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
                                         Counters
                                     </button>
                                     <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Tribal synergies')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.8rem;">
+                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
                                         Tribal
                                     </button>
                                 </div>
@@ -292,9 +393,13 @@
                         </button>
                     </div>
                 </div>
-                
-                <!-- Recommendations Panel -->
-                <div class="col-md-8">
+            </div>
+
+            <!-- Recommendations Row -->
+            <div class="row">
+                <!-- Full width recommendations panel -->
+                <div class="col-12">
+
                     <div id="recommendations-panel" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h3 style="color: #B983FF; margin: 0;">Deck Recommendations</h3>
@@ -448,6 +553,9 @@
             }
         }
 
+        // Store commander data for selection
+        let commandersData = [];
+
         function displayCommanderResults(commanders) {
             const resultsDiv = document.getElementById('commander-results');
             
@@ -456,7 +564,10 @@
                 return;
             }
             
-            resultsDiv.innerHTML = commanders.map(commander => {
+            // Store commanders data for later access
+            commandersData = commanders;
+            
+            resultsDiv.innerHTML = commanders.map((commander, index) => {
                 const colors = commander.colors || [];
                 const colorSymbols = colors.map(color => 
                     `<span class="mana-symbol mana-${color}">${color}</span>`
@@ -465,7 +576,7 @@
                 const manaCost = formatManaCost(commander.mana_cost || '');
                 
                 return `
-                    <div class="commander-card" onclick="selectCommander('${commander.name}')">
+                    <div class="commander-card" onclick="selectCommander('${commander.name}', ${index})">
                         <div class="d-flex align-items-center">
                             <div class="flex-grow-1">
                                 <strong>${commander.name}</strong>
@@ -481,7 +592,7 @@
             }).join('');
         }
 
-        function selectCommander(commanderName) {
+        function selectCommander(commanderName, commanderIndex) {
             selectedCommander = commanderName;
             
             // Highlight selected commander
@@ -495,8 +606,134 @@
             document.getElementById('selected-commander').style.display = 'block';
             document.getElementById('commander-display').innerHTML = `<strong>${commanderName}</strong>`;
             
+            // Get commander data and display image immediately if available
+            const commanderData = commandersData[commanderIndex];
+            if (commanderData && commanderData.image_uris && commanderData.image_uris.normal) {
+                const imageElement = document.getElementById('commander-image');
+                imageElement.src = commanderData.image_uris.normal;
+                imageElement.style.display = 'block';
+                document.getElementById('commander-image-loading').style.display = 'none';
+            } else {
+                // Show loading and fetch additional details
+                document.getElementById('commander-image-loading').style.display = 'block';
+                document.getElementById('commander-image').style.display = 'none';
+            }
+            
+            // Load commander printings (this will also handle cases where we need more image data)
+            loadCommanderDetails(commanderName);
+            
             // Show filters
             document.getElementById('recommendation-filters').style.display = 'block';
+        }
+
+        async function loadCommanderDetails(commanderName) {
+            try {
+                const response = await fetch(`/api/commanders/${encodeURIComponent(commanderName)}/printings`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Display commander image only if we don't already have one showing
+                const commander = data.commander;
+                const imageElement = document.getElementById('commander-image');
+                
+                if (!imageElement.src || imageElement.style.display === 'none') {
+                    if (commander && commander.image_uris && commander.image_uris.normal) {
+                        imageElement.src = commander.image_uris.normal;
+                        imageElement.style.display = 'block';
+                        document.getElementById('commander-image-loading').style.display = 'none';
+                    } else {
+                        // Try to find an image from printings
+                        const printingWithImage = data.printings.find(p => p.image_uris && p.image_uris.normal);
+                        if (printingWithImage) {
+                            imageElement.src = printingWithImage.image_uris.normal;
+                            imageElement.style.display = 'block';
+                            document.getElementById('commander-image-loading').style.display = 'none';
+                        } else {
+                            document.getElementById('commander-image-loading').innerHTML = 'No image available';
+                        }
+                    }
+                }
+                
+                // Display printings
+                displayCommanderPrintings(data.printings, data.total_versions, commander);
+                
+            } catch (error) {
+                console.error('Error loading commander details:', error);
+                document.getElementById('commander-image-loading').innerHTML = 'Error loading image';
+                document.getElementById('printings-count').innerHTML = 'Error loading printings';
+            }
+        }
+
+        function displayCommanderPrintings(printings, totalVersions, currentCommander) {
+            const printingsContainer = document.getElementById('commander-printings');
+            const printingsCount = document.getElementById('printings-count');
+            
+            printingsCount.textContent = `${totalVersions} version${totalVersions !== 1 ? 's' : ''}`;
+            
+            if (!printings || printings.length === 0) {
+                printingsContainer.innerHTML = '<p style="color: #888; text-align: center; margin: 10px 0;">No printings found</p>';
+                return;
+            }
+            
+            printingsContainer.innerHTML = printings.map((printing, index) => {
+                const isActive = currentCommander && currentCommander._id === printing._id;
+                const price = printing.prices && printing.prices.usd ? `$${parseFloat(printing.prices.usd).toFixed(2)}` : 'N/A';
+                
+                // Handle image URL safely like in visualizations.js
+                const imageUrl = (printing.image_uris && printing.image_uris.normal) ? printing.image_uris.normal : '';
+                
+                return `
+                    <div class="printing-item ${isActive ? 'active' : ''}" 
+                         onclick="switchCommanderImage('${printing.name}', '${imageUrl}', ${index})">
+                        <div class="d-flex align-items-center flex-grow-1">
+                            <!-- Small thumbnail -->
+                            <div class="printing-thumbnail me-2" style="width: 32px; height: 45px; flex-shrink: 0;">
+                                ${imageUrl ? `
+                                    <img src="${imageUrl}" 
+                                         alt="${printing.name}" 
+                                         style="width: 32px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid rgba(185,131,255,0.3);"
+                                         onerror="this.style.display='none';">
+                                ` : `
+                                    <div style="width: 32px; height: 45px; border-radius: 4px; background: rgba(185,131,255,0.1); border: 1px dashed rgba(185,131,255,0.3); display: flex; align-items: center; justify-content: center; color: #888; font-size: 8px;">
+                                        ?
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <!-- Printing info -->
+                            <div class="printing-info flex-grow-1">
+                                <div class="printing-set">${printing.set_name || printing.set || 'Unknown Set'}</div>
+                                <div class="printing-details">
+                                    ${(printing.set || 'UNK').toUpperCase()} • ${printing.collector_number || '?'} • ${printing.rarity || 'Unknown'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Price -->
+                        <div class="printing-price ms-2">${price}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function switchCommanderImage(commanderName, imageUrl, printingIndex) {
+            const imageElement = document.getElementById('commander-image');
+            
+            if (imageUrl) {
+                imageElement.src = imageUrl;
+                
+                // Update active printing highlight
+                document.querySelectorAll('.printing-item').forEach((item, index) => {
+                    if (index === printingIndex) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
         }
 
         // Get recommendations
@@ -578,55 +815,78 @@
             mainDeckDiv.innerHTML = sortedRecommendations.map(rec => {
                 const confidencePercent = (rec.confidence * 100).toFixed(0);
                 const hasMultipleVersions = rec.all_versions && rec.all_versions.length > 1;
-                // Better image fallback handling
-                const imageUris = rec.primary_version.image_uris || {};
-                const primaryImage = imageUris.normal || imageUris.large || imageUris.small || '';
+                
+                // Use the same image pattern as visualizations.js
+                let primaryImage = '';
+                
+                if (rec.primary_version && rec.primary_version.image_uris && rec.primary_version.image_uris.normal) {
+                    primaryImage = rec.primary_version.image_uris.normal;
+                } else if (rec.image_uris && rec.image_uris.normal) {
+                    // Fallback to direct image_uris on rec object
+                    primaryImage = rec.image_uris.normal;
+                }
                 
                 return `
-                    <div class="recommendation-card" ${hasMultipleVersions ? `onclick="showCardVersions('${rec.name}', ${JSON.stringify(rec.all_versions).replace(/"/g, '&quot;')})"` : ''} style="${rec.ai_suggested ? 'border: 2px solid rgba(78,205,196,0.4); box-shadow: 0 0 15px rgba(78,205,196,0.2);' : ''}">
+                    <div class="recommendation-card ${hasMultipleVersions ? 'clickable-card' : ''}" 
+                         style="${rec.ai_suggested ? 'border: 2px solid rgba(78,205,196,0.4); box-shadow: 0 0 15px rgba(78,205,196,0.2);' : ''} ${hasMultipleVersions ? 'cursor: pointer;' : ''}"
+                         ${hasMultipleVersions ? `onclick="showCardVersions('${rec.name.replace(/'/g, "\\'")}', ${JSON.stringify(rec.all_versions).replace(/"/g, '&quot;')})"` : ''}>
                         <div class="d-flex align-items-start">
-                            ${primaryImage ? `
-                                <div class="card-image-small me-3" style="position: relative;">
-                                    <img src="${primaryImage}" alt="${rec.name}" style="width: 60px; height: 84px; border-radius: 6px; object-fit: cover;" 
-                                         onerror="this.parentElement.innerHTML='<div style=\\'width: 60px; height: 84px; border-radius: 6px; background: rgba(185,131,255,0.1); display: flex; align-items: center; justify-content: center; color: #888; font-size: 10px; text-align: center;\\'>No Image</div>';">
-                                    ${rec.ai_suggested ? `
-                                        <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid #fff;">
-                                            <span style="font-size: 10px;">AI</span>
+                            <div class="card-image-container me-3" style="position: relative; width: 80px; height: 112px;">
+                                ${primaryImage ? `
+                                    <img src="${primaryImage}" 
+                                         alt="${rec.name}" 
+                                         class="card-image-display"
+                                         style="width: 80px; height: 112px; border-radius: 8px; object-fit: cover; border: 2px solid rgba(185,131,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s ease; cursor: pointer;"
+                                         onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(185,131,255,0.4)';"
+                                         onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.3)';"
+                                         onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'no-image-placeholder\\' style=\\'width: 80px; height: 112px; border-radius: 8px; background: rgba(185,131,255,0.1); display: flex; align-items: center; justify-content: center; color: #888; font-size: 12px; text-align: center; border: 2px dashed rgba(185,131,255,0.3);\\'>No Image<br>Available</div>';">
+                                ` : `
+                                    <div class="no-image-placeholder" 
+                                         style="width: 80px; height: 112px; border-radius: 8px; background: ${rec.ai_suggested ? 'linear-gradient(135deg, rgba(78,205,196,0.1), rgba(185,131,255,0.1))' : 'rgba(185,131,255,0.1)'}; display: flex; align-items: center; justify-content: center; position: relative; border: 2px dashed ${rec.ai_suggested ? 'rgba(78,205,196,0.3)' : 'rgba(185,131,255,0.3)'}; ${rec.ai_suggested ? 'animation: aiGlow 3s infinite;' : ''}">
+                                        <div style="text-align: center; color: ${rec.ai_suggested ? '#4ECDC4' : '#888'};">
+                                            <div style="font-size: 14px; margin-bottom: 4px;">${rec.ai_suggested ? 'AI' : '?'}</div>
+                                            <div style="font-size: 10px; font-weight: bold;">${rec.ai_suggested ? 'PICK' : 'NO IMG'}</div>
                                         </div>
-                                    ` : ''}
-                                </div>
-                            ` : `
-                                <div class="card-image-small me-3" style="width: 60px; height: 84px; border-radius: 6px; background: ${rec.ai_suggested ? 'linear-gradient(135deg, rgba(78,205,196,0.1), rgba(185,131,255,0.1))' : 'rgba(185,131,255,0.1)'}; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid ${rec.ai_suggested ? 'rgba(78,205,196,0.3)' : 'rgba(185,131,255,0.3)'}; ${rec.ai_suggested ? 'animation: aiGlow 3s infinite;' : ''}">
-                                    <div style="text-align: center; color: ${rec.ai_suggested ? '#4ECDC4' : '#888'};">
-                                        <div style="font-size: ${rec.ai_suggested ? '20px' : '16px'}; margin-bottom: 2px;">${rec.ai_suggested ? 'AI' : 'Card'}</div>
-                                        <div style="font-size: 9px; font-weight: bold;">${rec.ai_suggested ? 'AI PICK' : 'NO IMG'}</div>
                                     </div>
-                                </div>
-                            `}
+                                `}
+                                ${rec.ai_suggested ? `
+                                    <div class="ai-badge" style="position: absolute; top: -8px; right: -8px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid #fff; font-size: 10px; font-weight: bold;">
+                                        AI
+                                    </div>
+                                ` : ''}
+                                ${hasMultipleVersions ? `
+                                    <div class="versions-indicator" style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); background: rgba(255,165,0,0.9); color: #000; padding: 2px 6px; border-radius: 10px; font-size: 9px; font-weight: bold; box-shadow: 0 1px 4px rgba(0,0,0,0.3);">
+                                        ${rec.all_versions.length} Prints
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <strong style="color: #F3F0FF;">${rec.name}</strong>
-                                            ${rec.ai_suggested ? '<span style="color: #4ECDC4; font-size: 16px; animation: pulse 2s infinite;">AI</span>' : ''}
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <strong style="color: #F3F0FF; font-size: 1.1rem;">${rec.name}</strong>
+                                            ${rec.ai_suggested ? '<span class="ai-enhanced-badge" style="color: #4ECDC4; font-size: 14px; animation: pulse 2s infinite;">✨ AI</span>' : ''}
                                         </div>
-                                        <span class="category-badge">${rec.category}</span>
-                                        ${hasMultipleVersions ? '<span class="versions-badge">Multiple Versions</span>' : ''}
-                                        <br>
-                                        <small style="color: #B983FF;">
-                                            ${rec.primary_version.set_name} (${rec.primary_version.set.toUpperCase()})
-                                            ${rec.estimated_price ? ` • $${rec.estimated_price.toFixed(2)}` : ''}
-                                        </small>
-                                        <div style="font-size: 0.9rem; color: #CCC; margin-top: 4px;">
+                                        <div class="card-badges mb-2">
+                                            <span class="category-badge">${rec.category}</span>
+                                            ${hasMultipleVersions ? '<span class="versions-badge">Click for All Prints</span>' : ''}
+                                        </div>
+                                        <div class="card-details mb-2" style="font-size: 0.9rem; color: #B983FF;">
+                                            <div>${rec.primary_version?.set_name || 'Unknown Set'} (${(rec.primary_version?.set || '???').toUpperCase()})</div>
+                                            ${rec.estimated_price ? `<div>$${rec.estimated_price.toFixed(2)}</div>` : ''}
+                                        </div>
+                                        <div class="card-reasons" style="font-size: 0.85rem; color: #CCC; margin-bottom: 8px; line-height: 1.3;">
                                             ${rec.reasons.slice(0, 2).join(' • ')}
                                         </div>
-                                        <div class="confidence-bar">
-                                            <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                                        <div class="confidence-section">
+                                            <div class="confidence-bar">
+                                                <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                                            </div>
+                                            <div class="confidence-text" style="font-size: 0.8rem; color: #B983FF; margin-top: 2px;">
+                                                Confidence: ${confidencePercent}%
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div style="text-align: right; color: #B983FF;">
-                                        ${confidencePercent}%
-                                        ${rec.ai_suggested ? '<div style="font-size: 11px; color: #4ECDC4; margin-top: 2px;">AI Enhanced</div>' : ''}
                                     </div>
                                 </div>
                             </div>
@@ -673,55 +933,90 @@
         }
 
         function showCardVersions(cardName, allVersions) {
-            document.getElementById('cardVersionsModalLabel').textContent = `${cardName} - All Versions`;
+            document.getElementById('cardVersionsModalLabel').textContent = `${cardName} - All Printings`;
             
             const versionsContent = document.getElementById('card-versions-content');
             
+            // Parse allVersions if it's a string
+            let versions = Array.isArray(allVersions) ? allVersions : JSON.parse(allVersions);
+            
             // Sort versions by release date (newest first)
-            const sortedVersions = [...allVersions].sort((a, b) => {
+            const sortedVersions = [...versions].sort((a, b) => {
                 const dateA = new Date(a.released_at || '2000-01-01');
                 const dateB = new Date(b.released_at || '2000-01-01');
                 return dateB - dateA;
             });
             
             versionsContent.innerHTML = `
+                <div class="mb-3" style="color: #B983FF;">
+                    <strong>${sortedVersions.length} printings found</strong> - Click any image to view full size
+                </div>
                 <div class="row">
-                    ${sortedVersions.map(version => {
+                    ${sortedVersions.map((version, index) => {
                         // Handle both direct image_uris and nested structure  
                         const imageUris = version.image_uris || {};
                         const imageUrl = imageUris.normal || imageUris.large || imageUris.small || '';
+                        const largeImageUrl = imageUris.large || imageUris.normal || imageUrl;
                         const releaseYear = version.released_at ? new Date(version.released_at).getFullYear() : 'Unknown';
                         
                         return `
-                            <div class="col-md-3 col-sm-4 col-6 mb-4">
-                                <div class="card" style="background: rgba(45, 27, 74, 0.8); border: 1px solid rgba(185, 131, 255, 0.2); transition: all 0.3s ease;">
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6 mb-4">
+                                <div class="card version-card" style="background: rgba(45, 27, 74, 0.8); border: 1px solid rgba(185, 131, 255, 0.2); transition: all 0.3s ease; cursor: pointer; height: 100%;"
+                                     onmouseover="this.style.borderColor='rgba(185,131,255,0.5)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(185,131,255,0.2)';"
+                                     onmouseout="this.style.borderColor='rgba(185,131,255,0.2)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+                                     onclick="showLargeCardImage('${cardName.replace(/'/g, "\\'")}', '${largeImageUrl}', ${JSON.stringify(version).replace(/"/g, '&quot;')})">
                                     ${imageUrl ? `
-                                        <img src="${imageUrl}" class="card-img-top" alt="${cardName}" 
-                                             style="height: 250px; object-fit: contain; cursor: pointer;"
-                                             onclick="window.open('${imageUrl}', '_blank')">
+                                        <div class="image-container" style="position: relative; height: 200px; overflow: hidden; border-radius: 6px 6px 0 0;">
+                                            <img src="${imageUrl}" class="card-img-top" alt="${cardName}" 
+                                                 style="height: 200px; width: 100%; object-fit: contain; transition: transform 0.3s ease;"
+                                                 onmouseover="this.style.transform='scale(1.05)';"
+                                                 onmouseout="this.style.transform='scale(1)';">
+                                            <div class="image-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.7)); opacity: 0; transition: opacity 0.3s ease;"
+                                                 onmouseover="this.style.opacity='1';"
+                                                 onmouseout="this.style.opacity='0';">
+                                                <div style="position: absolute; bottom: 8px; left: 8px; color: white; font-size: 12px; font-weight: bold;">
+                                                    Click to enlarge
+                                                </div>
+                                            </div>
+                                        </div>
                                     ` : `
                                         <div class="card-img-top d-flex align-items-center justify-content-center" 
-                                             style="height: 250px; background: rgba(0,0,0,0.3); color: #888;">
-                                            No Image
+                                             style="height: 200px; background: rgba(0,0,0,0.3); color: #888; border-radius: 6px 6px 0 0;">
+                                            <div style="text-align: center;">
+                                                <div style="font-size: 24px; margin-bottom: 4px;">🖼️</div>
+                                                <div style="font-size: 12px;">No Image</div>
+                                            </div>
                                         </div>
                                     `}
-                                    <div class="card-body p-2">
-                                        <h6 class="card-title" style="color: #F3F0FF; font-size: 0.9rem; margin-bottom: 8px;">
+                                    <div class="card-body p-2" style="flex-grow: 1; display: flex; flex-direction: column;">
+                                        <h6 class="card-title" style="color: #F3F0FF; font-size: 0.85rem; margin-bottom: 8px; line-height: 1.2; flex-shrink: 0;">
                                             ${version.set_name || 'Unknown Set'}
                                         </h6>
-                                        <div style="font-size: 0.8rem; color: #B983FF;">
-                                            <div><strong>${version.set.toUpperCase()}</strong> #${version.collector_number}</div>
-                                            <div class="mt-1">
-                                                <span class="badge" style="background: ${getRarityColor(version.rarity)};">
-                                                    ${version.rarity || 'common'}
+                                        <div class="card-details" style="font-size: 0.75rem; color: #B983FF; flex-grow: 1;">
+                                            <div class="mb-1">
+                                                <strong>${(version.set || 'UNK').toUpperCase()}</strong> 
+                                                #${version.collector_number || '?'}
+                                            </div>
+                                            <div class="mb-2 d-flex align-items-center justify-content-between">
+                                                <span class="rarity-badge" style="background: ${getRarityColor(version.rarity)}; color: #000; padding: 1px 4px; border-radius: 3px; font-size: 0.7rem; font-weight: bold;">
+                                                    ${(version.rarity || 'common').toUpperCase()}
                                                 </span>
-                                                <span class="ms-2" style="color: #FFA500;">
+                                                <span style="color: #FFA500; font-size: 0.7rem;">
                                                     ${releaseYear}
                                                 </span>
                                             </div>
-                                            ${version.price > 0 ? `
-                                                <div class="mt-1" style="color: #00FF00;">
+                                            ${version.price && version.price > 0 ? `
+                                                <div class="price-display" style="color: #00FF88; font-weight: bold; font-size: 0.8rem; text-align: center; background: rgba(0,255,136,0.1); padding: 2px 4px; border-radius: 4px;">
                                                     $${version.price.toFixed(2)}
+                                                </div>
+                                            ` : `
+                                                <div style="color: #666; font-size: 0.7rem; text-align: center; font-style: italic;">
+                                                    Price N/A
+                                                </div>
+                                            `}
+                                            ${version.artist ? `
+                                                <div style="color: #888; font-size: 0.7rem; margin-top: 4px; text-align: center; font-style: italic;">
+                                                    by ${version.artist}
                                                 </div>
                                             ` : ''}
                                         </div>
@@ -735,6 +1030,81 @@
             
             // Show the modal
             const modal = new bootstrap.Modal(document.getElementById('cardVersionsModal'));
+            modal.show();
+        }
+
+        // New function to show large card image (similar to visualizations tab)
+        function showLargeCardImage(cardName, imageUrl, versionData) {
+            if (!imageUrl) return;
+            
+            const version = typeof versionData === 'string' ? JSON.parse(versionData) : versionData;
+            const priceDisplay = version.price && version.price > 0 ? `$${version.price.toFixed(2)}` : 'Price N/A';
+            
+            const largeImageModal = `
+                <div class="modal fade" id="largeCardImageModal" tabindex="-1" style="z-index: 1070;">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content" style="background: #1A0B2E; border: 1px solid rgba(185, 131, 255, 0.3);">
+                            <div class="modal-header" style="border-bottom: 1px solid rgba(185, 131, 255, 0.3);">
+                                <h5 class="modal-title" style="color: #B983FF;">${cardName} - ${version.set_name || 'Unknown Set'}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-center" style="padding: 1rem;">
+                                <div class="image-container mb-3">
+                                    <img src="${imageUrl}" alt="${cardName}" 
+                                         style="max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"
+                                         onclick="window.open('${imageUrl}', '_blank')">
+                                </div>
+                                <div class="card-info" style="background: rgba(45, 27, 74, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid rgba(185, 131, 255, 0.2);">
+                                    <div class="row text-start">
+                                        <div class="col-md-6">
+                                            <div class="info-item mb-2">
+                                                <strong style="color: #B983FF;">Set:</strong>
+                                                <span style="color: #F3F0FF;">${version.set_name || 'Unknown'}</span>
+                                            </div>
+                                            <div class="info-item mb-2">
+                                                <strong style="color: #B983FF;">Code:</strong>
+                                                <span style="color: #F3F0FF;">${(version.set || 'UNK').toUpperCase()} #${version.collector_number || '?'}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="info-item mb-2">
+                                                <strong style="color: #B983FF;">Rarity:</strong>
+                                                <span class="rarity-badge ms-1" style="background: ${getRarityColor(version.rarity)}; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">
+                                                    ${(version.rarity || 'common').toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div class="info-item mb-2">
+                                                <strong style="color: #B983FF;">Price:</strong>
+                                                <span style="color: #00FF88; font-weight: bold;">${priceDisplay}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ${version.artist ? `
+                                        <div class="artist-info mt-2 pt-2" style="border-top: 1px solid rgba(185, 131, 255, 0.2);">
+                                            <strong style="color: #B983FF;">Artist:</strong>
+                                            <span style="color: #F3F0FF; font-style: italic;">${version.artist}</span>
+                                        </div>
+                                    ` : ''}
+                                    <div class="mt-3">
+                                        <button class="btn btn-sm" style="background: rgba(185,131,255,0.2); border-color: #B983FF; color: #B983FF;"
+                                                onclick="window.open('${imageUrl}', '_blank')">
+                                            Open Full Size in New Tab
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing large image modal
+            const existingModal = document.getElementById('largeCardImageModal');
+            if (existingModal) existingModal.remove();
+            
+            // Add and show modal
+            document.body.insertAdjacentHTML('beforeend', largeImageModal);
+            const modal = new bootstrap.Modal(document.getElementById('largeCardImageModal'));
             modal.show();
         }
 
