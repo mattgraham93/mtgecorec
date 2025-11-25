@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - MTG EcoRec</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-purple.css') }}">
+    <style>
+        .profile-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem 0;
+        }
+        
+        .profile-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+        
+        .profile-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .profile-header h2 {
+            color: #5a67d8;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto 1rem;
+        }
+        
+        .usage-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .usage-title {
+            color: #5a67d8;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .usage-progress {
+            margin-bottom: 1rem;
+        }
+        
+        .usage-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #5a67d8;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+        
+        .account-info {
+            background: #fff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .info-value {
+            color: #718096;
+        }
+        
+        .btn-custom {
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(90, 103, 216, 0.3);
+        }
+        
+        .btn-secondary-custom {
+            background: #f8f9fa;
+            border: 2px solid #e2e8f0;
+            color: #5a67d8;
+        }
+        
+        .btn-secondary-custom:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e0;
+        }
+        
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            opacity: 0.9;
+            transition: opacity 0.3s ease;
+        }
+        
+        .back-link:hover {
+            opacity: 1;
+            color: white;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
+        
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="user-avatar">
+                                {{ user.username[0].upper() }}
+                            </div>
+                            <h2>{{ user.username }}</h2>
+                            <p class="text-muted">Member since {{ user.created_at.strftime('%B %Y') if user.created_at else 'Recently' }}</p>
+                        </div>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <!-- AI Usage Card -->
+                        <div class="usage-card">
+                            <h5 class="usage-title">AI Query Usage This Month</h5>
+                            
+                            <div class="usage-stats">
+                                <div class="stat-item">
+                                    <div class="stat-number">{{ query_count }}</div>
+                                    <div class="stat-label">Used</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number">{{ queries_remaining }}</div>
+                                    <div class="stat-label">Remaining</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-number">{{ query_limit }}</div>
+                                    <div class="stat-label">Monthly Limit</div>
+                                </div>
+                            </div>
+                            
+                            <div class="usage-progress">
+                                <div class="progress" style="height: 8px; border-radius: 10px;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: {{ (query_count / query_limit * 100) if query_limit > 0 else 0 }}%; 
+                                                background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"
+                                         aria-valuenow="{{ query_count }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="{{ query_limit }}">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if queries_remaining <= 5 %}
+                                <div class="alert alert-warning mt-2" style="margin-bottom: 0;">
+                                    <small>
+                                        <strong>Usage Alert:</strong> You have {{ queries_remaining }} AI queries remaining this month.
+                                        Your limit will reset on the 1st of next month.
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Account Information -->
+                        <div class="account-info">
+                            <h5 class="usage-title">Account Information</h5>
+                            
+                            <div class="info-row">
+                                <span class="info-label">Username:</span>
+                                <span class="info-value">{{ user.username }}</span>
+                            </div>
+                            
+                            <div class="info-row">
+                                <span class="info-label">Email:</span>
+                                <span class="info-value">{{ user.email }}</span>
+                            </div>
+                            
+                            <div class="info-row">
+                                <span class="info-label">Account Status:</span>
+                                <span class="info-value">
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Inactive</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            
+                            <div class="info-row">
+                                <span class="info-label">Monthly Query Limit:</span>
+                                <span class="info-value">{{ user.monthly_query_limit or 50 }} queries</span>
+                            </div>
+                            
+                            <div class="info-row">
+                                <span class="info-label">Total Queries Used:</span>
+                                <span class="info-value">{{ user.total_queries_used or 0 }} queries</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="text-center">
+                            <a href="{{ url_for('commander_deck_builder') }}" class="btn btn-primary-custom btn-custom me-2">
+                                Use AI Features
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="btn btn-secondary-custom btn-custom">
+                                Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

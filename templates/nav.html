@@ -16,8 +16,56 @@
     <a class="nav-link nav-panel-link mb-2 {% if 'visualizations' in request.path %}active{% endif %}" href="/visualizations">Visualizations</a>
     <a class="nav-link nav-panel-link mb-2 {% if 'narrative' in request.path %}active{% endif %}" href="/narrative" style="display: none;">Economy</a>
     <a class="nav-link nav-panel-link mb-2 {% if 'analysis' in request.path %}active{% endif %}" href="/analysis" style="display: none;">Analysis</a>
+    
+    <hr class="nav-divider my-3">
+    
+    {% if session.get('user_id') %}
+      <!-- Logged in user links -->
+      <div class="user-section">
+        <small class="text-muted px-3 d-block mb-2">Welcome, {{ session.get('username', 'User') }}!</small>
+        <a class="nav-link nav-panel-link mb-2 {% if 'profile' in request.path %}active{% endif %}" href="/profile">
+          <i class="fas fa-user me-2"></i>Profile
+        </a>
+        <a class="nav-link nav-panel-link mb-2" href="/logout">
+          <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+        </a>
+      </div>
+    {% else %}
+      <!-- Guest user links -->
+      <div class="auth-section">
+        <small class="text-muted px-3 d-block mb-2">Access AI Features:</small>
+        <a class="nav-link nav-panel-link mb-2 {% if 'login' in request.path %}active{% endif %}" href="/login">
+          <i class="fas fa-sign-in-alt me-2"></i>Sign In
+        </a>
+        <a class="nav-link nav-panel-link mb-2 {% if 'register' in request.path %}active{% endif %}" href="/register">
+          <i class="fas fa-user-plus me-2"></i>Register
+        </a>
+      </div>
+    {% endif %}
   </nav>
 </div>
+<style>
+.nav-divider {
+  border-color: rgba(255, 255, 255, 0.2);
+  margin: 1rem 0;
+}
+
+.user-section, .auth-section {
+  padding: 0.5rem 0;
+}
+
+.user-section small, .auth-section small {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.nav-link i {
+  width: 16px;
+  opacity: 0.7;
+}
+</style>
+
 <script>
 function toggleSideNav() {
   const nav = document.getElementById('side-nav');

@@ -1,10 +1,124 @@
 import os
+from dotenv import load_dotenv
 from flask import (Flask, redirect, render_template, request,
-                   send_from_directory, url_for, jsonify)
+                   send_from_directory, url_for, jsonify, session, flash)
+
+# Load environment variables
+load_dotenv()
 # Import Cosmos DB driver
 from core.data_engine import cosmos_driver
+# Import authentication components
+from core.data_engine.user_manager import UserManager
+from core.data_engine.auth_decorators import login_required, ai_query_required
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
+
+# Set secret key for sessions (in production, use environment variable)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-key-change-in-production')
+
+# Initialize user manager
+user_manager = UserManager()
+
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+   if request.method == 'POST':
+      username = request.form.get('username')
+      password = request.form.get('password')
+      
+      if not username or not password:
+         flash('Username and password are required', 'error')
+         return render_template('login.html')
+      
+      try:
+         result = user_manager.authenticate_user(username, password)
+         if result and result.get('success'):
+            user = result['user']
+            session['user_id'] = user['user_id']
+            session['username'] = user['username']
+            session['user_email'] = user['email']
+            flash(f'Welcome back, {user["username"]}!', 'success')
+            return redirect(url_for('index'))
+         else:
+            flash('Invalid username or password', 'error')
+      except Exception as e:
+         print(f'Login error: {e}')
+         flash('Login failed. Please try again.', 'error')
+   
+   return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+   if request.method == 'POST':
+      username = request.form.get('username')
+      email = request.form.get('email')
+      password = request.form.get('password')
+      confirm_password = request.form.get('confirm_password')
+      
+      # Validate inputs
+      if not all([username, email, password, confirm_password]):
+         flash('All fields are required', 'error')
+         return render_template('register.html')
+      
+      if password != confirm_password:
+         flash('Passwords do not match', 'error')
+         return render_template('register.html')
+      
+      if len(password) < 6:
+         flash('Password must be at least 6 characters long', 'error')
+         return render_template('register.html')
+      
+      if len(username) < 3 or len(username) > 30:
+         flash('Username must be between 3-30 characters', 'error')
+         return render_template('register.html')
+      
+      try:
+         # Create user
+         result = user_manager.register_user(username, email, password)
+         if result and result.get('success'):
+            flash('Account created successfully! Please log in.', 'success')
+            return redirect(url_for('login'))
+         else:
+            error_msg = result.get('message', 'Username or email may already exist.') if result else 'Registration failed.'
+            flash(f'Registration failed. {error_msg}', 'error')
+      except Exception as e:
+         print(f'Registration error: {e}')
+         flash('Registration failed. Please try again.', 'error')
+   
+   return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+   username = session.get('username', 'User')
+   session.clear()
+   flash(f'Goodbye, {username}!', 'info')
+   return redirect(url_for('index'))
+
+@app.route('/profile')
+@login_required
+def profile():
+   """User profile page showing account info and usage."""
+   try:
+      user_id = session.get('user_id')
+      user_data = user_manager.get_user_by_id(user_id)
+      
+      if not user_data:
+         flash('User not found', 'error')
+         return redirect(url_for('login'))
+      
+      # Get current month's query count
+      query_count = user_manager.get_monthly_query_count(user_id)
+      query_limit = user_data.get('monthly_query_limit', 50)
+      
+      return render_template('profile.html', 
+                           user=user_data,
+                           query_count=query_count,
+                           query_limit=query_limit,
+                           queries_remaining=max(0, query_limit - query_count))
+   except Exception as e:
+      print(f'Profile error: {e}')
+      flash('Error loading profile', 'error')
+      return redirect(url_for('index'))
 
 # Main page routes
 @app.route('/')
@@ -545,6 +659,7 @@ def api_search_commanders():
       return jsonify({'error': str(e)}), 500
 
 @app.route('/api/commanders/<commander_name>/recommendations')
+@ai_query_required
 def api_get_commander_recommendations(commander_name):
    """Get deck recommendations for a specific commander with optional AI-powered personalization."""
    budget_limit = request.args.get('budget', type=float)
@@ -660,6 +775,7 @@ def api_get_commander_recommendations(commander_name):
       return jsonify({'error': str(e)}), 500
 
 @app.route('/api/commanders/<commander_name>/ai-analysis')
+@ai_query_required
 def api_get_ai_analysis(commander_name):
    """Get AI analysis for a commander using Perplexity."""
    current_deck = request.args.getlist('deck[]')  # Cards already in deck
@@ -694,6 +810,7 @@ def api_get_ai_analysis(commander_name):
       return jsonify({'error': str(e)}), 500
 
 @app.route('/api/commanders/<commander_name>/analysis-summary', methods=['POST'])
+@ai_query_required
 def api_generate_analysis_summary(commander_name):
    """Generate an executive summary of all analysis data using Perplexity."""
    
