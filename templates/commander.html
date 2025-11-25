@@ -1214,8 +1214,8 @@
         function exportToScryfall() {
             if (!selectedCommander) return;
             
-            // Get current recommendations
-            const recommendationCards = document.querySelectorAll('.recommendation-card');
+            // Get current recommendations from the main deck container
+            const recommendationCards = document.querySelectorAll('#main-deck-recommendations .recommendation-card');
             if (recommendationCards.length === 0) {
                 alert('No recommendations to export. Please generate recommendations first.');
                 return;
@@ -1229,13 +1229,29 @@
             // Add main deck cards
             recommendationCards.forEach((card, index) => {
                 const cardName = card.querySelector('strong').textContent.trim();
-                const isAIPick = card.querySelector('.recommendation-card').style.border.includes('78,205,196');
+                const isAIPick = card.style.border && card.style.border.includes('78,205,196');
                 deckList += `1 ${cardName}${isAIPick ? ' # AI Recommended' : ''}\n`;
             });
             
-            // Add basic lands
-            deckList += `\n# Basic Lands (add as needed)\n`;
-            deckList += `10 Plains\n10 Island\n10 Swamp\n10 Mountain\n10 Forest\n`;
+            // Add basic lands based on commander's colors (if we can detect them)
+            deckList += `\n# Basic Lands (adjust quantities based on your commander's colors)\n`;
+            
+            // Try to get commander colors from the selected commander data
+            const commanderData = commandersData.find(c => c.name === selectedCommander);
+            if (commanderData && commanderData.colors) {
+                const colorToLand = { 'W': 'Plains', 'U': 'Island', 'B': 'Swamp', 'R': 'Mountain', 'G': 'Forest' };
+                const commanderColors = commanderData.colors;
+                const landsPerColor = Math.floor(35 / commanderColors.length); // Rough estimate for 35-land manabase
+                
+                commanderColors.forEach(color => {
+                    if (colorToLand[color]) {
+                        deckList += `${landsPerColor} ${colorToLand[color]}\n`;
+                    }
+                });
+            } else {
+                // Fallback for all basic lands
+                deckList += `7 Plains\n7 Island\n7 Swamp\n7 Mountain\n7 Forest\n`;
+            }
             
             // Create and download file
             const blob = new Blob([deckList], { type: 'text/plain' });
@@ -1259,8 +1275,8 @@
         function exportToText() {
             if (!selectedCommander) return;
             
-            // Get current recommendations
-            const recommendationCards = document.querySelectorAll('.recommendation-card');
+            // Get current recommendations from the main deck container
+            const recommendationCards = document.querySelectorAll('#main-deck-recommendations .recommendation-card');
             if (recommendationCards.length === 0) {
                 alert('No recommendations to export. Please generate recommendations first.');
                 return;
@@ -1279,10 +1295,19 @@
             
             recommendationCards.forEach((card) => {
                 const cardName = card.querySelector('strong').textContent.trim();
-                const category = card.querySelector('.category-badge').textContent.trim();
-                const confidence = card.querySelector('.d-flex .text-align-right')?.textContent.includes('%') ? 
-                    card.querySelector('.d-flex .text-align-right').textContent.trim() : 'N/A';
-                const isAIPick = card.querySelector('.recommendation-card').style.border.includes('78,205,196');
+                const category = card.querySelector('.category-badge')?.textContent.trim() || 'Unknown';
+                
+                // Look for confidence percentage in various places
+                const confidenceElements = card.querySelectorAll('*');
+                let confidence = 'N/A';
+                for (let el of confidenceElements) {
+                    if (el.textContent && el.textContent.includes('%')) {
+                        confidence = el.textContent.trim();
+                        break;
+                    }
+                }
+                
+                const isAIPick = card.style.border && card.style.border.includes('78,205,196');
                 
                 const cardInfo = `${cardName} (${category}) - ${confidence}`;
                 
