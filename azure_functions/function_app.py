@@ -12,7 +12,7 @@ sys.path.append('.')  # Local development path
 from pricing_pipeline import run_pricing_pipeline_azure_function
 
 # Create the Function App using v2 programming model
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 @app.route(route="pricing/collect", methods=["GET", "POST"])
 def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
