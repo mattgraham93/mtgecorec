@@ -1,3 +1,7 @@
+# Pre-compiled gRPC to avoid compilation issues
+grpcio==1.60.1
+grpcio-tools==1.60.1
+
 # Azure Functions Core
 azure-functions>=1.18.0
 azure-functions-worker>=1.0.0
@@ -10,7 +14,3 @@ requests>=2.31.0
 
 # Utilities
 python-dotenv>=1.0.0
-
-# Logging and monitoring (optional but recommended)
-# opencensus-extension-azure-monitor>=1.1.13  # Deprecated - removed
-# azure-monitor-opentelemetry>=1.2.0  # Modern replacement (optional)
