@@ -9,7 +9,14 @@ import sys
 sys.path.append('/home/site/wwwroot')  # Azure Functions path
 sys.path.append('.')  # Local development path
 
-from pricing_pipeline import run_pricing_pipeline_azure_function
+try:
+    from pricing_pipeline import run_pricing_pipeline_azure_function
+    logging.info("Successfully imported pricing_pipeline")
+except Exception as e:
+    logging.error(f"Failed to import pricing_pipeline: {str(e)}")
+    # Create a dummy function to prevent total failure
+    def run_pricing_pipeline_azure_function(*args, **kwargs):
+        return {"error": "Pipeline import failed", "details": str(e)}
 
 # Create the Function App using v2 programming model
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -174,6 +181,24 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
             "status": "healthy",
             "timestamp": datetime.utcnow().isoformat(),
             "service": "mtg-pricing-pipeline"
+        }),
+        status_code=200,
+        mimetype="application/json"
+    )
+
+
+@app.route(route="test", methods=["GET"])
+def simple_test(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Simple test endpoint that doesn't depend on external modules
+    """
+    logging.info('Simple test function triggered')
+    
+    return func.HttpResponse(
+        json.dumps({
+            "message": "Function app is working!",
+            "timestamp": datetime.utcnow().isoformat(),
+            "python_version": sys.version
         }),
         status_code=200,
         mimetype="application/json"
