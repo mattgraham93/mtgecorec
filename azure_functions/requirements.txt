@@ -2,9 +2,9 @@
 azure-functions>=1.18.0
 azure-functions-worker==1.1.9
 
-# Compatible gRPC versions (must match azure-functions-worker requirements)
-grpcio==1.33.2
-grpcio-tools==1.33.2
+# Compatible gRPC versions with guaranteed wheels for Python 3.9
+grpcio==1.33.1
+grpcio-tools==1.33.1
 
 # Database
 pymongo>=4.6.0
