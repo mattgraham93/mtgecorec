@@ -33,6 +33,20 @@
             border-color: #B983FF;
         }
         
+        .pricing-info {
+            font-size: 0.85rem;
+            color: #4CAF50;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+        
+        .pricing-date {
+            font-size: 0.7rem;
+            color: #888;
+            font-style: italic;
+            margin-top: 2px;
+        }
+        
         .color-identity {
             display: inline-flex;
             gap: 4px;
@@ -132,6 +146,12 @@
             transform: scale(1.02);
         }
         
+        .printing-item {
+            min-height: 65px;
+            max-height: 65px;
+            overflow: hidden;
+        }
+        
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -197,10 +217,10 @@
         
         .commander-search,
         .filters {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            min-height: 100%;
+            max-height: 460px;
+            overflow-y: auto;
         }
         
         /* Printing item styles */
@@ -247,6 +267,28 @@
             font-size: 0.8rem;
             font-weight: 500;
         }
+        
+        /* Fix modal stacking issues */
+        .modal-backdrop {
+            z-index: 1054 !important;
+        }
+        
+        #cardVersionsModal {
+            z-index: 1055 !important;
+        }
+        
+        #cardVersionsModal .modal-dialog {
+            z-index: 1056 !important;
+        }
+        
+        #cardVersionsModal .modal-content {
+            z-index: 1057 !important;
+        }
+        
+        /* Ensure modal content is clickable */
+        #cardVersionsModal .modal-content * {
+            pointer-events: auto;
+        }
     </style>
 </head>
 <html>
@@ -255,12 +297,15 @@
     
     <main style="margin-top: 4.8rem;">
         <div class="container-fluid">
-            <!-- Top Selection Row -->
-            <div class="row mb-4 equal-height-row">
-                <!-- Commander Selection Panel -->
-                <div class="col-md-6 equal-height-col">
+            <!-- Three Panel Row -->
+            <div class="row mb-4 equal-height-row" style="max-height: 480px;">
+                <!-- Panel 1: Commander Search -->
+                <div class="col-md-4 equal-height-col">
                     <div class="commander-search">
-                        <h3 class="text-center mb-3" style="color: #B983FF;">Choose Your Commander</h3>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 style="color: #B983FF; margin: 0;">Choose Your Commander</h3>
+                            <div id="global-pricing-date" style="color: #888; font-size: 0.8rem; font-style: italic;"></div>
+                        </div>
                         
                         <div class="mb-3">
                             <input type="text" 
@@ -274,129 +319,176 @@
                             <!-- Commander search results will appear here -->
                         </div>
                         
-                        <div id="selected-commander" style="display: none;">
-                            <h5 style="color: #B983FF;">Selected Commander:</h5>
-                            <div id="commander-display"></div>
-                            
-                            <!-- Commander Card Image and Printings Side-by-Side -->
-                            <div id="commander-image-section" class="mt-3">
-                                <div class="row">
-                                    <!-- Printings List (Left) -->
-                                    <div class="col-md-5">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <small style="color: #B983FF; font-weight: bold;">Available Printings:</small>
-                                            <small id="printings-count" style="color: #888;"></small>
-                                        </div>
-                                        <div id="commander-printings" 
-                                             style="height: 350px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;">
-                                            <!-- Printings will be loaded here -->
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Commander Image (Right) -->
-                                    <div class="col-md-7">
-                                        <div class="text-center" style="height: 350px; display: flex; align-items: center; justify-content: center;">
-                                            <div>
-                                                <img id="commander-image" 
-                                                     class="img-fluid" 
-                                                     style="max-width: 250px; max-height: 330px; border-radius: 12px; border: 2px solid rgba(185,131,255,0.3); display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"
-                                                     alt="Commander card"
-                                                     onerror="this.style.display='none'; document.getElementById('commander-image-loading').innerHTML='Image unavailable';">
-                                                <div id="commander-image-loading" style="display: none; color: #888;">
-                                                    Loading image...
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+
+                    </div>
+                </div>
+
+                <!-- Panel 2: Commander Printings Selection -->
+                <div class="col-md-4 equal-height-col">
+                    <div class="printings-panel" style="background: rgba(185, 131, 255, 0.05); border: 2px solid rgba(185, 131, 255, 0.3); border-radius: 12px; padding: 1.5rem; max-height: 500px; overflow-y: auto;">
+                        <h3 class="text-center mb-3" style="color: #B983FF;">Select Printing</h3>
+                        
+                        <!-- Placeholder when no commander selected -->
+                        <div id="printings-placeholder">
+                            <div class="text-center text-muted mt-5">
+                                <i class="fas fa-arrow-left fa-2x mb-3"></i>
+                                <p>Select a commander to view printings and pricing</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Content when commander is selected -->
+                        <div id="printings-content" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small style="color: #B983FF; font-weight: bold;">Available Printings:</small>
+                                <small id="printings-count" style="color: #888;"></small>
+                            </div>
+                            <div id="commander-printings" 
+                                 style="height: 380px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px;">
+                                <!-- Printings will be loaded here -->
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recommendation Filters -->
-                <div class="col-md-6 equal-height-col">
-                    <div class="filters" id="recommendation-filters" style="display: none;">
-                        <h3 class="text-center mb-3" style="color: #B983FF;">Preferences</h3>
+                <!-- Panel 3: Image + Preferences -->
+                <div class="col-md-4 equal-height-col">
+                    <div class="image-preferences-panel" style="background: rgba(185, 131, 255, 0.05); border: 2px solid rgba(185, 131, 255, 0.3); border-radius: 12px; padding: 1.5rem; max-height: 500px; overflow-y: auto;">
+                        <h3 class="text-center mb-3" style="color: #B983FF;">Card & Preferences</h3>
                         
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #F3F0FF;">Budget per Card</label>
-                            <select id="budget-select" class="form-control" style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
-                                <option value="">No budget limit</option>
-                                <option value="1">Under $1</option>
-                                <option value="5">Under $5</option>
-                                <option value="10">Under $10</option>
-                                <option value="25">Under $25</option>
-                                <option value="50">Under $50</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #F3F0FF;">Power Level</label>
-                            <select id="power-select" class="form-control" style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
-                                <option value="casual">Casual</option>
-                                <option value="focused">Focused</option>
-                                <option value="optimized">Optimized</option>
-                                <option value="competitive">Competitive</option>
-                            </select>
-                        </div>
-
-                        <!-- Mechanic/Theme Preferences -->
-                        <div class="mb-3">
-                            <label class="form-label" style="color: #F3F0FF;">Preferred Mechanics/Themes</label>
-                            <div class="mb-2">
-                                <textarea id="preferred-mechanics" 
-                                          class="form-control" 
-                                          rows="2"
-                                          placeholder="E.g., 'Flying creatures and artifacts', 'Graveyard recursion', 'Token generation'"
-                                          style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF; resize: vertical;"></textarea>
-                                <small style="color: #888; font-size: 0.8rem;">
-                                    Describe strategies you enjoy - guides AI card research.
-                                </small>
+                        <!-- Placeholder when no commander selected -->
+                        <div id="image-preferences-placeholder">
+                            <div class="text-center text-muted mt-5">
+                                <i class="fas fa-arrow-left fa-2x mb-3"></i>
+                                <p>Select a printing to view card image and set preferences</p>
                             </div>
+                        </div>
+                        
+                        <!-- Content Container -->
+                        <div id="commander-image-container" style="display: none;">
+                            <div class="row">
+                                <!-- Commander Image Column -->
+                                <div class="col-7">
+                                    <div class="position-relative text-center">
+                                        <!-- Previous Arrow -->
+                                        <button id="prev-printing" class="btn position-absolute" style="left: -15px; top: 50%; transform: translateY(-50%); background: rgba(185,131,255,0.2); border: 1px solid rgba(185,131,255,0.5); color: #B983FF; z-index: 10; display: none;" onclick="navigatePrinting(-1)">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        
+                                        <img id="commander-image" 
+                                             class="img-fluid" 
+                                             style="max-width: 100%; max-height: 350px; border-radius: 10px; border: 2px solid rgba(185,131,255,0.3); display: none; box-shadow: 0 6px 20px rgba(0,0,0,0.4);"
+                                             alt="Commander card"
+                                             onerror="this.style.display='none'; document.getElementById('commander-image-loading').innerHTML='Image unavailable';">
+                                        
+                                        <!-- Next Arrow -->
+                                        <button id="next-printing" class="btn position-absolute" style="right: -15px; top: 50%; transform: translateY(-50%); background: rgba(185,131,255,0.2); border: 1px solid rgba(185,131,255,0.5); color: #B983FF; z-index: 10; display: none;" onclick="navigatePrinting(1)">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                        
+                                        <div id="commander-image-loading" style="display: none; color: #888; padding: 3rem; font-size: 1rem;">
+                                            Loading image...
+                                        </div>
+                                        
+                                        <!-- Printing info -->
+                                        <div id="current-printing-info" style="display: none; margin-top: 0.5rem; font-size: 0.9rem; color: #B983FF;"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Preferences Column -->
+                                <div class="col-5">
+                        
+                                    <!-- User Input Controls -->
+                                    <div id="recommendation-filters" style="display: none;">
+                                    
+                                    <div class="mb-2">
+                                        <label class="form-label" style="color: #F3F0FF; font-size: 0.9rem; margin-bottom: 0.3rem;">Budget per Card</label>
+                                        <select id="budget-select" class="form-control form-control-sm" style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
+                                            <option value="">No budget limit</option>
+                                            <option value="1">Under $1</option>
+                                            <option value="5">Under $5</option>
+                                            <option value="10">Under $10</option>
+                                            <option value="25">Under $25</option>
+                                            <option value="50">Under $50</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <label class="form-label" style="color: #F3F0FF; font-size: 0.9rem; margin-bottom: 0.3rem;">Power Level</label>
+                                        <select id="power-select" class="form-control form-control-sm" style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;">
+                                            <option value="casual">Casual</option>
+                                            <option value="focused">Focused</option>
+                                            <option value="optimized">Optimized</option>
+                                            <option value="competitive">Competitive</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Mechanic/Theme Preferences -->
+                                    <div class="mb-2">
+                                        <label class="form-label" style="color: #F3F0FF; font-size: 0.9rem; margin-bottom: 0.3rem;">Preferred Mechanics/Themes</label>
+                                        <div class="mb-2">
+                                            <textarea id="preferred-mechanics" 
+                                                      class="form-control form-control-sm" 
+                                                      rows="2"
+                                                      placeholder="E.g., 'Flying creatures and artifacts', 'Graveyard recursion', 'Token generation'"
+                                                      style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF; resize: vertical;"></textarea>
+                                            <small style="color: #888; font-size: 0.75rem;">
+                                                Describe strategies you enjoy - guides AI card research.
+                                            </small>
+                                        </div>
+                                        
+                                        <!-- Quick Theme Buttons -->
+                                        <div class="mb-1">
+                                            <small style="color: #B983FF; display: block; margin-bottom: 4px; font-size: 0.8rem;">Quick Select:</small>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                <button type="button" class="btn btn-xs theme-btn" onclick="addTheme('Flying and artifacts')" 
+                                                        style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.7rem; padding: 0.15rem 0.3rem;">
+                                                    Flying + Artifacts
+                                                </button>
+                                                <button type="button" class="btn btn-xs theme-btn" onclick="addTheme('Token generation')"
+                                                        style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.7rem; padding: 0.15rem 0.3rem;">
+                                                    Tokens
+                                                </button>
+                                                <button type="button" class="btn btn-xs theme-btn" onclick="addTheme('Graveyard value')"
+                                                        style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.7rem; padding: 0.15rem 0.3rem;">
+                                                    Graveyard
+                                                </button>
+                                                <button type="button" class="btn btn-xs theme-btn" onclick="addTheme('Spellslinger')"
+                                                        style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.7rem; padding: 0.15rem 0.3rem;">
+                                                    Spells
+                                                </button>
+                                                <button type="button" class="btn btn-xs theme-btn" onclick="addTheme('Counters and proliferate')"
+                                                        style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.7rem; padding: 0.15rem 0.3rem;">
+                                                    Counters
+                                                </button>
+                                                <button type="button" class="btn btn-xs theme-btn" onclick="addTheme('Tribal synergies')"
+                                                        style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.7rem; padding: 0.15rem 0.3rem;">
+                                                    Tribal
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    </div>
+                                </div>
+                            </div>
+                        
                             
-                            <!-- Quick Theme Buttons -->
-                            <div class="mb-2">
-                                <small style="color: #B983FF; display: block; margin-bottom: 8px;">Quick Select:</small>
-                                <div class="d-flex flex-wrap gap-1">
-                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Flying and artifacts')" 
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
-                                        Flying + Artifacts
-                                    </button>
-                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Token generation')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
-                                        Tokens
-                                    </button>
-                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Graveyard value')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
-                                        Graveyard
-                                    </button>
-                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Spellslinger')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
-                                        Spells
-                                    </button>
-                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Counters and proliferate')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
-                                        Counters
-                                    </button>
-                                    <button type="button" class="btn btn-sm theme-btn" onclick="addTheme('Tribal synergies')"
-                                            style="background: rgba(185,131,255,0.2); border-color: rgba(185,131,255,0.5); color: #B983FF; font-size: 0.75rem;">
-                                        Tribal
+                            <!-- Recommendation Button - Full Width Below -->
+                            <div class="row mt-3" id="recommendation-button-row" style="display: none;">
+                                <div class="col-12">
+                                    <button id="get-recommendations-btn" class="btn btn-primary w-100" 
+                                            style="background: #2D1B4A; border-color: #B983FF;">
+                                        Get AI-Powered Recommendations
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        
-                        <button id="get-recommendations-btn" class="btn btn-primary w-100" 
-                                style="background: #2D1B4A; border-color: #B983FF;">
-                            Get AI-Powered Recommendations
-                        </button>
                     </div>
                 </div>
             </div>
 
             <!-- Recommendations Row -->
-            <div class="row">
+            <div class="row mt-3">
                 <!-- Full width recommendations panel -->
                 <div class="col-12">
 
@@ -505,17 +597,25 @@
     </main>
 
     <!-- Card Versions Modal -->
-    <div class="modal fade" id="cardVersionsModal" tabindex="-1" aria-labelledby="cardVersionsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content" style="background: #1A0B2E; border: 1px solid rgba(185, 131, 255, 0.3);">
+    <div class="modal fade" id="cardVersionsModal" tabindex="-1" aria-labelledby="cardVersionsModalLabel" aria-hidden="true" 
+         style="z-index: 1055; padding-top: 80px;" data-bs-backdrop="true" data-bs-keyboard="true">
+        <div class="modal-dialog modal-xl" style="margin-top: 0; z-index: 1056; position: relative;">
+            <div class="modal-content" style="background: #1A0B2E; border: 1px solid rgba(185, 131, 255, 0.3); max-height: calc(100vh - 100px); overflow-y: auto; z-index: 1057; position: relative;">
                 <div class="modal-header" style="border-bottom: 1px solid rgba(185, 131, 255, 0.3);">
                     <h5 class="modal-title" id="cardVersionsModalLabel" style="color: #B983FF;">Card Versions</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" 
+                            onclick="closeCardVersionsModal()"></button>
                 </div>
                 <div class="modal-body">
                     <div id="card-versions-content">
                         <!-- Card versions will be populated here -->
                     </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid rgba(185, 131, 255, 0.3);">
+                    <button type="button" class="btn btn-secondary" onclick="closeCardVersionsModal()" 
+                            style="background: rgba(185, 131, 255, 0.2); border: 1px solid rgba(185, 131, 255, 0.5); color: #F3F0FF;">
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -575,25 +675,93 @@
                 
                 const manaCost = formatManaCost(commander.mana_cost || '');
                 
+                // Pricing will be loaded when commander is selected to avoid rate limiting
+                
                 return `
                     <div class="commander-card" onclick="selectCommander('${commander.name}', ${index})">
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-start">
                             <div class="flex-grow-1">
                                 <strong>${commander.name}</strong>
-                                <div class="color-identity">${colorSymbols}</div>
-                                <small style="color: #888;">${commander.type_line}</small>
+                                <div><small style="color: #888;">${commander.type_line}</small></div>
                             </div>
-                            <div class="mana-cost-display">
-                                ${manaCost}
+                            <div class="text-end">
+                                <div class="mana-cost-display">
+                                    ${manaCost}
+                                </div>
+                                <div class="pricing-info" id="pricing-${index}" style="margin-top: 4px;">Loading pricing...</div>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
+            
+            // Load pricing for each commander with delays to avoid rate limits
+            commanders.forEach((commander, index) => {
+                // Stagger the requests with increasing delays to avoid overwhelming the database
+                setTimeout(() => {
+                    loadCommanderPricing(commander.name, index);
+                }, index * 200); // 200ms delay between each request
+            });
+        }
+
+        async function loadCommanderPricing(commanderName, index) {
+            try {
+                const response = await fetch(`/api/commanders/${encodeURIComponent(commanderName)}/pricing`);
+                const data = await response.json();
+                
+                const pricingElement = document.getElementById(`pricing-${index}`);
+                if (!pricingElement) return;
+                
+                if (data.pricing && typeof data.pricing === 'object') {
+                    const prices = [];
+                    
+                    // Check if this commander has multiple versions
+                    const hasMultipleVersions = data.pricing.total_versions && data.pricing.total_versions > 1;
+                    
+                    // Format USD price with proper decimal formatting
+                    if (data.pricing.usd && !isNaN(data.pricing.usd)) {
+                        const usdPrice = parseFloat(data.pricing.usd).toFixed(2);
+                        if (hasMultipleVersions) {
+                            prices.push(`from $${usdPrice}`);
+                            console.log(`DEBUG Search Results: ${commanderName} showing from $${usdPrice}, total_versions: ${data.pricing.total_versions}`);
+                        } else {
+                            prices.push(`$${usdPrice}`);
+                            console.log(`DEBUG Search Results: ${commanderName} showing $${usdPrice}, single version`);
+                        }
+                    }
+                    
+                    // Format foil price 
+                    if (data.pricing.usd_foil && !isNaN(data.pricing.usd_foil)) {
+                        const foilPrice = parseFloat(data.pricing.usd_foil).toFixed(2);
+                        prices.push(`$${foilPrice} (foil)`);
+                    }
+                    
+                    if (prices.length > 0) {
+                        let priceDisplay = prices.join(' / ');
+                        if (hasMultipleVersions && data.pricing.total_versions) {
+                            priceDisplay += ` <span class="versions-count" style="color: #888; font-size: 0.8rem;">(${data.pricing.total_versions} prints)</span>`;
+                        }
+                        pricingElement.innerHTML = priceDisplay;
+                    } else {
+                        pricingElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                    }
+                } else {
+                    pricingElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                }
+            } catch (error) {
+                console.error(`Error loading pricing for ${commanderName}:`, error);
+                const pricingElement = document.getElementById(`pricing-${index}`);
+                if (pricingElement) {
+                    pricingElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                }
+            }
         }
 
         function selectCommander(commanderName, commanderIndex) {
             selectedCommander = commanderName;
+            
+            // Get commander data once for the entire function
+            const commanderData = commandersData[commanderIndex];
             
             // Highlight selected commander
             document.querySelectorAll('.commander-card').forEach(card => {
@@ -602,12 +770,18 @@
             
             event.target.closest('.commander-card').classList.add('selected');
             
-            // Show selected commander
-            document.getElementById('selected-commander').style.display = 'block';
-            document.getElementById('commander-display').innerHTML = `<strong>${commanderName}</strong>`;
+            // Load pricing for the selected commander
+            loadSelectedCommanderPricing(commanderName);
             
-            // Get commander data and display image immediately if available
-            const commanderData = commandersData[commanderIndex];
+            // Show Panel 2: Printings
+            document.getElementById('printings-placeholder').style.display = 'none';
+            document.getElementById('printings-content').style.display = 'block';
+            
+            // Show Panel 3: Image and populate
+            document.getElementById('image-preferences-placeholder').style.display = 'none';
+            document.getElementById('commander-image-container').style.display = 'block';
+            
+            // Display image immediately if available
             if (commanderData && commanderData.image_uris && commanderData.image_uris.normal) {
                 const imageElement = document.getElementById('commander-image');
                 imageElement.src = commanderData.image_uris.normal;
@@ -622,8 +796,125 @@
             // Load commander printings (this will also handle cases where we need more image data)
             loadCommanderDetails(commanderName);
             
-            // Show filters
+            // Show preferences panel
             document.getElementById('recommendation-filters').style.display = 'block';
+            
+            // Show recommendation button
+            document.getElementById('recommendation-button-row').style.display = 'block';
+        }
+        
+        // Load pricing for card versions in modal
+        async function loadVersionsPricing(cardName, versions) {
+            try {
+                console.log(`Loading pricing for ${cardName} with ${versions.length} versions`);
+                
+                // Make a single API call to get pricing data
+                const response = await fetch(`/api/commanders/${encodeURIComponent(cardName)}/pricing`);
+                if (response.ok) {
+                    const pricingData = await response.json();
+                    console.log('Pricing data received:', pricingData);
+                    
+                    if (pricingData.pricing) {
+                        // Update all version cards with the pricing data
+                        const versionCards = document.querySelectorAll('#card-versions-content .version-card');
+                        console.log(`Found ${versionCards.length} version cards to update`);
+                        
+                        versionCards.forEach((versionCard, index) => {
+                            const priceElement = versionCard.querySelector('.price-display') || 
+                                               versionCard.querySelector('[style*="Price N/A"]');
+                            
+                            if (priceElement) {
+                                let priceText = 'Price N/A';
+                                let priceColor = '#888';
+                                let backgroundColor = 'transparent';
+                                
+                                // Use USD price if available
+                                if (pricingData.pricing.usd && !isNaN(pricingData.pricing.usd)) {
+                                    priceText = `$${parseFloat(pricingData.pricing.usd).toFixed(2)}`;
+                                    priceColor = '#00FF88';
+                                    backgroundColor = 'rgba(0,255,136,0.1)';
+                                    
+                                    // Store pricing data in the version object
+                                    if (versions[index]) {
+                                        versions[index].database_price = { usd: pricingData.pricing.usd };
+                                    }
+                                }
+                                
+                                priceElement.innerHTML = priceText;
+                                priceElement.style.color = priceColor;
+                                priceElement.style.background = backgroundColor;
+                                priceElement.style.padding = '2px 4px';
+                                priceElement.style.borderRadius = '4px';
+                                
+                                console.log(`Updated price for version ${index}: ${priceText}`);
+                            }
+                        });
+                        
+                        console.log('Pricing update completed');
+                    } else {
+                        console.log('No pricing data available');
+                    }
+                } else {
+                    console.error(`Failed to load pricing: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error(`Error loading pricing for ${cardName}:`, error);
+            }
+        }
+
+        async function loadSelectedCommanderPricing(commanderName) {
+            try {
+                const response = await fetch(`/api/commanders/${encodeURIComponent(commanderName)}/pricing`);
+                const data = await response.json();
+                
+                const priceElement = document.getElementById('commander-price');
+                const globalDateElement = document.getElementById('global-pricing-date');
+                if (!priceElement) return;
+                
+                if (data.pricing && typeof data.pricing === 'object') {
+                    // Check if this commander has multiple versions
+                    const hasMultipleVersions = data.pricing.total_versions && data.pricing.total_versions > 1;
+                    
+                    // Format USD price with proper decimal formatting
+                    if (data.pricing.usd && !isNaN(data.pricing.usd)) {
+                        const usdPrice = parseFloat(data.pricing.usd).toFixed(2);
+                        if (hasMultipleVersions) {
+                            priceElement.innerHTML = `from $${usdPrice} <span style="color: #888; font-size: 0.8rem;">(${data.pricing.total_versions} prints)</span>`;
+                            console.log(`DEBUG Selected Commander: ${commanderName} showing from $${usdPrice}, total_versions: ${data.pricing.total_versions}`);
+                        } else {
+                            priceElement.innerHTML = `$${usdPrice}`;
+                            console.log(`DEBUG Selected Commander: ${commanderName} showing $${usdPrice}, single version`);
+                        }
+                    } else {
+                        priceElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                    }
+                    
+                    // Update global pricing date
+                    if (data.pricing.date && globalDateElement) {
+                        let dateStr = data.pricing.date;
+                        if (dateStr.includes('T') || dateStr.includes('-')) {
+                            try {
+                                const date = new Date(dateStr);
+                                dateStr = date.toLocaleDateString();
+                            } catch (e) {
+                                // If date parsing fails, use original
+                            }
+                        }
+                        globalDateElement.innerHTML = `pricing as-of: ${dateStr}`;
+                    }
+                } else {
+                    priceElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                    if (globalDateElement) {
+                        globalDateElement.innerHTML = '';
+                    }
+                }
+            } catch (error) {
+                console.error(`Error loading pricing for ${commanderName}:`, error);
+                const pricingElement = document.getElementById('selected-commander-pricing');
+                if (pricingElement) {
+                    pricingElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                }
+            }
         }
 
         async function loadCommanderDetails(commanderName) {
@@ -660,6 +951,20 @@
                 // Display printings
                 displayCommanderPrintings(data.printings, data.total_versions, commander);
                 
+                // Load pricing for printings and display first one by default
+                if (data.printings && data.printings.length > 0) {
+                    // Load pricing for each printing
+                    loadPrintingsPricing(data.printings);
+                    
+                    // Display the first printing by default
+                    setTimeout(() => {
+                        displaySelectedPrinting(data.printings[0], 0);
+                        // Highlight first printing as active
+                        const firstPrinting = document.querySelector('.printing-item');
+                        if (firstPrinting) firstPrinting.classList.add('active');
+                    }, 100);
+                }
+                
             } catch (error) {
                 console.error('Error loading commander details:', error);
                 document.getElementById('commander-image-loading').innerHTML = 'Error loading image';
@@ -671,6 +976,10 @@
             const printingsContainer = document.getElementById('commander-printings');
             const printingsCount = document.getElementById('printings-count');
             
+            // Store printings globally for navigation
+            currentPrintings = printings || [];
+            currentPrintingIndex = 0;
+            
             printingsCount.textContent = `${totalVersions} version${totalVersions !== 1 ? 's' : ''}`;
             
             if (!printings || printings.length === 0) {
@@ -680,7 +989,13 @@
             
             printingsContainer.innerHTML = printings.map((printing, index) => {
                 const isActive = currentCommander && currentCommander._id === printing._id;
-                const price = printing.prices && printing.prices.usd ? `$${parseFloat(printing.prices.usd).toFixed(2)}` : 'N/A';
+                // Prioritize our database pricing over Scryfall pricing
+                let price = 'N/A';
+                if (printing.database_price && printing.database_price.usd) {
+                    price = `$${parseFloat(printing.database_price.usd).toFixed(2)}`;
+                } else if (printing.prices && printing.prices.usd) {
+                    price = `$${parseFloat(printing.prices.usd).toFixed(2)} (old)`;
+                }
                 
                 // Handle image URL safely like in visualizations.js
                 const imageUrl = (printing.image_uris && printing.image_uris.normal) ? printing.image_uris.normal : '';
@@ -720,20 +1035,22 @@
         }
 
         function switchCommanderImage(commanderName, imageUrl, printingIndex) {
-            const imageElement = document.getElementById('commander-image');
+            // Update current index
+            currentPrintingIndex = printingIndex;
             
-            if (imageUrl) {
-                imageElement.src = imageUrl;
-                
-                // Update active printing highlight
-                document.querySelectorAll('.printing-item').forEach((item, index) => {
-                    if (index === printingIndex) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
+            // Use the displaySelectedPrinting function for consistency
+            if (currentPrintings[printingIndex]) {
+                displaySelectedPrinting(currentPrintings[printingIndex], printingIndex);
             }
+            
+            // Update active printing highlight
+            document.querySelectorAll('.printing-item').forEach((item, index) => {
+                if (index === printingIndex) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
         }
 
         // Get recommendations
@@ -810,9 +1127,20 @@
                 return b.confidence - a.confidence;
             });
             
-            // Display main deck recommendations
+            // Display main deck recommendations in 3-column layout
             const mainDeckDiv = document.getElementById('main-deck-recommendations');
-            mainDeckDiv.innerHTML = sortedRecommendations.map(rec => {
+            
+            // Create 3-column structure and distribute cards
+            const columns = [[], [], []];
+            sortedRecommendations.forEach((rec, index) => {
+                columns[index % 3].push(rec);
+            });
+            
+            mainDeckDiv.innerHTML = `
+                <div class="row">
+                    ${columns.map(column => `
+                        <div class="col-md-4">
+                            ${column.map(rec => {
                 const confidencePercent = (rec.confidence * 100).toFixed(0);
                 const hasMultipleVersions = rec.all_versions && rec.all_versions.length > 1;
                 
@@ -893,7 +1221,11 @@
                         </div>
                     </div>
                 `;
-            }).join('');
+                            }).join('')}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
             
             // Display mana base
             const manaBaseDiv = document.getElementById('mana-base-recommendations');
@@ -932,13 +1264,25 @@
                 `<div style="white-space: pre-wrap; color: #F3F0FF;">${analysis}</div>`;
         }
 
+        // Global modal instance for proper cleanup
+        let cardVersionsModalInstance = null;
+        
         function showCardVersions(cardName, allVersions) {
-            document.getElementById('cardVersionsModalLabel').textContent = `${cardName} - All Printings`;
-            
-            const versionsContent = document.getElementById('card-versions-content');
-            
-            // Parse allVersions if it's a string
-            let versions = Array.isArray(allVersions) ? allVersions : JSON.parse(allVersions);
+            try {
+                console.log('Opening card versions for:', cardName);
+                
+                // Close any existing modal first
+                if (cardVersionsModalInstance) {
+                    cardVersionsModalInstance.hide();
+                }
+                
+                document.getElementById('cardVersionsModalLabel').textContent = `${cardName} - All Printings`;
+                
+                const versionsContent = document.getElementById('card-versions-content');
+                
+                // Parse allVersions if it's a string
+                let versions = Array.isArray(allVersions) ? allVersions : JSON.parse(allVersions);
+                console.log('Versions loaded:', versions.length);
             
             // Sort versions by release date (newest first)
             const sortedVersions = [...versions].sort((a, b) => {
@@ -964,7 +1308,7 @@
                                 <div class="card version-card" style="background: rgba(45, 27, 74, 0.8); border: 1px solid rgba(185, 131, 255, 0.2); transition: all 0.3s ease; cursor: pointer; height: 100%;"
                                      onmouseover="this.style.borderColor='rgba(185,131,255,0.5)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(185,131,255,0.2)';"
                                      onmouseout="this.style.borderColor='rgba(185,131,255,0.2)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
-                                     onclick="showLargeCardImage('${cardName.replace(/'/g, "\\'")}', '${largeImageUrl}', ${JSON.stringify(version).replace(/"/g, '&quot;')})">
+                                     onclick="try { showLargeCardImage('${cardName.replace(/'/g, "\\'")}', '${largeImageUrl}', ${JSON.stringify(version).replace(/"/g, '&quot;')}); } catch(e) { console.error('Error showing card:', e); }">
                                     ${imageUrl ? `
                                         <div class="image-container" style="position: relative; height: 200px; overflow: hidden; border-radius: 6px 6px 0 0;">
                                             <img src="${imageUrl}" class="card-img-top" alt="${cardName}" 
@@ -1005,15 +1349,15 @@
                                                     ${releaseYear}
                                                 </span>
                                             </div>
-                                            ${version.price && version.price > 0 ? `
-                                                <div class="price-display" style="color: #00FF88; font-weight: bold; font-size: 0.8rem; text-align: center; background: rgba(0,255,136,0.1); padding: 2px 4px; border-radius: 4px;">
-                                                    $${version.price.toFixed(2)}
-                                                </div>
-                                            ` : `
-                                                <div style="color: #666; font-size: 0.7rem; text-align: center; font-style: italic;">
-                                                    Price N/A
-                                                </div>
-                                            `}
+                                            ${(() => {
+                                                if (version.database_price && version.database_price.usd) {
+                                                    return `<div class="price-display" style="color: #00FF88; font-weight: bold; font-size: 0.8rem; text-align: center; background: rgba(0,255,136,0.1); padding: 2px 4px; border-radius: 4px;">$${parseFloat(version.database_price.usd).toFixed(2)}</div>`;
+                                                } else if (version.price && version.price > 0) {
+                                                    return `<div class="price-display" style="color: #FFA500; font-weight: bold; font-size: 0.8rem; text-align: center; background: rgba(255,165,0,0.1); padding: 2px 4px; border-radius: 4px;">$${version.price.toFixed(2)} (old)</div>`;
+                                                } else {
+                                                    return `<div style="color: #666; font-size: 0.7rem; text-align: center; font-style: italic;">Price N/A</div>`;
+                                                }
+                                            })()}
                                             ${version.artist ? `
                                                 <div style="color: #888; font-size: 0.7rem; margin-top: 4px; text-align: center; font-style: italic;">
                                                     by ${version.artist}
@@ -1028,9 +1372,55 @@
                 </div>
             `;
             
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('cardVersionsModal'));
-            modal.show();
+                // Load pricing for versions
+                loadVersionsPricing(cardName, sortedVersions);
+                
+                // Show the modal
+                const modalElement = document.getElementById('cardVersionsModal');
+                cardVersionsModalInstance = new bootstrap.Modal(modalElement, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
+                
+                // Add backdrop click handler
+                modalElement.addEventListener('click', function(e) {
+                    if (e.target === modalElement) {
+                        console.log('Backdrop clicked, closing modal');
+                        closeCardVersionsModal();
+                    }
+                });
+                
+                cardVersionsModalInstance.show();
+                console.log('Modal should be visible now');
+                
+            } catch (error) {
+                console.error('Error opening card versions modal:', error);
+                alert('Error opening card versions. Please try again.');
+            }
+        }
+        
+        // Function to properly close the modal
+        function closeCardVersionsModal() {
+            try {
+                console.log('Closing card versions modal');
+                if (cardVersionsModalInstance) {
+                    cardVersionsModalInstance.hide();
+                    cardVersionsModalInstance = null;
+                }
+            } catch (error) {
+                console.error('Error closing modal:', error);
+                // Force close by hiding the modal element
+                const modalElement = document.getElementById('cardVersionsModal');
+                if (modalElement) {
+                    modalElement.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                }
+            }
         }
 
         // New function to show large card image (similar to visualizations tab)
@@ -1038,7 +1428,13 @@
             if (!imageUrl) return;
             
             const version = typeof versionData === 'string' ? JSON.parse(versionData) : versionData;
-            const priceDisplay = version.price && version.price > 0 ? `$${version.price.toFixed(2)}` : 'Price N/A';
+            // Prioritize database pricing over old Scryfall pricing
+            let priceDisplay = 'Price N/A';
+            if (version.database_price && version.database_price.usd) {
+                priceDisplay = `$${parseFloat(version.database_price.usd).toFixed(2)}`;
+            } else if (version.price && version.price > 0) {
+                priceDisplay = `$${version.price.toFixed(2)} (old)`;
+            }
             
             const largeImageModal = `
                 <div class="modal fade" id="largeCardImageModal" tabindex="-1" style="z-index: 1070;">
@@ -1355,6 +1751,92 @@
                 alert('Recommendation list downloaded!');
             });
         }
+        
+        // Global variables for printing navigation
+        let currentPrintings = [];
+        let currentPrintingIndex = 0;
+        
+        // Load pricing for printings
+        async function loadPrintingsPricing(printings) {
+            for (let i = 0; i < printings.length; i++) {
+                const printing = printings[i];
+                try {
+                    // Try to get pricing from our database first
+                    const response = await fetch(`/api/commanders/${encodeURIComponent(printing.name)}/pricing`);
+                    if (response.ok) {
+                        const pricingData = await response.json();
+                        if (pricingData.pricing && pricingData.pricing.usd) {
+                            printing.database_price = { usd: pricingData.pricing.usd };
+                        }
+                    }
+                } catch (error) {
+                    console.log(`Could not load pricing for ${printing.name}:`, error);
+                }
+                // Small delay to avoid overwhelming the server
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Refresh the printings display with updated prices
+            displayCommanderPrintings(printings, printings.length, null);
+        }
+        
+        // Navigate through printings
+        function navigatePrinting(direction) {
+            if (currentPrintings.length === 0) return;
+            
+            currentPrintingIndex += direction;
+            if (currentPrintingIndex < 0) currentPrintingIndex = currentPrintings.length - 1;
+            if (currentPrintingIndex >= currentPrintings.length) currentPrintingIndex = 0;
+            
+            const printing = currentPrintings[currentPrintingIndex];
+            displaySelectedPrinting(printing, currentPrintingIndex);
+        }
+        
+        // Display selected printing with navigation
+        function displaySelectedPrinting(printing, index) {
+            const imageElement = document.getElementById('commander-image');
+            const loadingElement = document.getElementById('commander-image-loading');
+            const printingInfo = document.getElementById('current-printing-info');
+            
+            // Show loading
+            loadingElement.style.display = 'block';
+            imageElement.style.display = 'none';
+            
+            // Set image source
+            if (printing.image_uris && printing.image_uris.normal) {
+                imageElement.src = printing.image_uris.normal;
+                imageElement.onload = function() {
+                    loadingElement.style.display = 'none';
+                    imageElement.style.display = 'block';
+                };
+            }
+            
+            // Update printing info
+            printingInfo.innerHTML = `${printing.set_name} • ${printing.collector_number} • ${printing.rarity}`;
+            printingInfo.style.display = 'block';
+            
+            // Show navigation arrows if multiple printings
+            const prevBtn = document.getElementById('prev-printing');
+            const nextBtn = document.getElementById('next-printing');
+            if (currentPrintings.length > 1) {
+                prevBtn.style.display = 'block';
+                nextBtn.style.display = 'block';
+            } else {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+            }
+        }
+        
+        // Initialize page state
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure proper initial state of panels
+            document.getElementById('printings-placeholder').style.display = 'block';
+            document.getElementById('printings-content').style.display = 'none';
+            document.getElementById('image-preferences-placeholder').style.display = 'block';
+            document.getElementById('commander-image-container').style.display = 'none';
+            document.getElementById('recommendation-filters').style.display = 'none';
+            document.getElementById('recommendation-button-row').style.display = 'none';
+        });
     </script>
 </body>
 </html>

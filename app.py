@@ -26,6 +26,152 @@ app.config.update(
 # Initialize user manager
 user_manager = UserManager()
 
+# Pricing helper functions
+def get_latest_pricing_data(card_name):
+    """Get the latest pricing data for a card by name using the actual database structure."""
+    try:
+        client = cosmos_driver.get_mongo_client()
+        
+        # First, get the card's scryfall ID
+        cards_collection = client.mtgecorec.cards
+        card = cards_collection.find_one({'name': card_name}, {'id': 1})
+        
+        if not card:
+            return None
+            
+        scryfall_id = card['id']
+        
+        # Get the pricing collection (correct name from notebook)
+        pricing_collection = client.mtgecorec.card_pricing_daily
+        
+        # Find pricing record for this card using scryfall_id (without sorting to avoid index issues)
+        pricing_data = pricing_collection.find_one(
+            {'scryfall_id': scryfall_id}
+        )
+        
+        if pricing_data:
+            # Extract pricing using the same logic as your notebook
+            usd_price = None
+            usd_foil_price = None
+            date_value = pricing_data.get('date')
+            
+            # Strategy 1: Extract from 'prices' dictionary
+            prices_dict = pricing_data.get('prices', {})
+            if isinstance(prices_dict, dict):
+                usd_price = prices_dict.get('usd')
+                usd_foil_price = prices_dict.get('usd_foil')
+            
+            # Strategy 2: Use price_usd column if prices dict didn't work
+            if not usd_price:
+                usd_price = pricing_data.get('price_usd')
+            
+            # Strategy 3: Extract from price_type/price_value structure
+            if not usd_price and pricing_data.get('price_type') == 'usd':
+                usd_price = pricing_data.get('price_value')
+            
+            return {
+                'usd': usd_price,
+                'usd_foil': usd_foil_price,
+                'eur': prices_dict.get('eur') if isinstance(prices_dict, dict) else None,
+                'date': date_value
+            }
+        return None
+        
+    except Exception as e:
+        print(f'Error fetching pricing data for {card_name}: {e}')
+        return None
+
+def get_all_versions_pricing_data(card_name):
+    """Get pricing data for all versions of a card and return the lowest price info."""
+    try:
+        client = cosmos_driver.get_mongo_client()
+        
+        # Get all scryfall IDs for this card name with limit to reduce load
+        cards_collection = client.mtgecorec.cards
+        all_cards = list(cards_collection.find({'name': card_name}, {'id': 1, 'set_name': 1, 'set': 1}).limit(10))
+        
+        if not all_cards:
+            return None
+        
+        # Get all pricing data in one query to avoid rate limits
+        pricing_collection = client.mtgecorec.card_pricing_daily
+        scryfall_ids = [card['id'] for card in all_cards]
+        all_pricing = list(pricing_collection.find({'scryfall_id': {'$in': scryfall_ids}}).limit(20))
+        
+        print(f"DEBUG: Found {len(all_cards)} cards and {len(all_pricing)} pricing records for {card_name}")
+        
+        valid_prices = []
+        for pricing_data in all_pricing:
+            # Extract pricing using the same logic as get_latest_pricing_data
+            usd_price = None
+            usd_foil_price = None
+            
+            # Strategy 1: Extract from 'prices' dictionary
+            prices_dict = pricing_data.get('prices', {})
+            if isinstance(prices_dict, dict):
+                usd_price = prices_dict.get('usd')
+                usd_foil_price = prices_dict.get('usd_foil')
+            
+            # Strategy 2: Use price_usd column if prices dict didn't work
+            if not usd_price:
+                usd_price = pricing_data.get('price_usd')
+            
+            # Strategy 3: Extract from price_type/price_value structure
+            if not usd_price and pricing_data.get('price_type') == 'usd':
+                usd_price = pricing_data.get('price_value')
+            
+            if usd_price and not is_nan(float(usd_price)) and float(usd_price) > 0:
+                valid_prices.append({
+                    'usd': float(usd_price),
+                    'usd_foil': float(usd_foil_price) if usd_foil_price and not is_nan(float(usd_foil_price)) else None,
+                    'date': pricing_data.get('date'),
+                    'scryfall_id': pricing_data.get('scryfall_id')
+                })
+        
+        print(f"DEBUG: Found {len(valid_prices)} valid prices: {[p['usd'] for p in valid_prices]}")
+        
+        if valid_prices:
+            # Find lowest non-foil price
+            lowest_price = min(valid_prices, key=lambda x: x['usd'])
+            print(f"DEBUG: Lowest price found: ${lowest_price['usd']:.2f} from {lowest_price.get('scryfall_id', 'unknown')}")
+            
+            # Find lowest foil price if any
+            foil_prices = [p for p in valid_prices if p['usd_foil']]
+            lowest_foil = min(foil_prices, key=lambda x: x['usd_foil']) if foil_prices else None
+            
+            return {
+                'usd': lowest_price['usd'],
+                'usd_foil': lowest_foil['usd_foil'] if lowest_foil else None,
+                'date': lowest_price['date'],
+                'total_versions': len(all_cards)
+            }
+        
+        return None
+        
+    except Exception as e:
+        print(f'Error fetching all versions pricing for {card_name}: {e}')
+        # Fallback: try to get at least one pricing record
+        try:
+            single_pricing = get_latest_pricing_data(card_name)
+            if single_pricing:
+                return {
+                    'usd': single_pricing['usd'],
+                    'usd_foil': single_pricing['usd_foil'],
+                    'date': single_pricing['date'],
+                    'total_versions': 1
+                }
+        except:
+            pass
+        return None
+
+def is_nan(value):
+    """Helper function to check if a value is NaN."""
+    try:
+        float_val = float(value)
+        return float_val != float_val  # NaN is the only value that is not equal to itself
+    except (ValueError, TypeError):
+        return True
+
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -716,11 +862,23 @@ def api_search_commanders():
       
       commanders = list(collection.aggregate(commanders_pipeline))
       
+# Don't load pricing in search results to avoid rate limiting
+      # Pricing will be loaded when a specific commander is selected
       return jsonify({'commanders': commanders})
       
    except Exception as e:
       print(f'Error searching commanders: {e}')
       return jsonify({'error': str(e)}), 500
+
+@app.route('/api/commanders/<commander_name>/pricing')
+def api_get_commander_pricing(commander_name):
+   """Get pricing data for a specific commander."""
+   try:
+      pricing_data = get_all_versions_pricing_data(commander_name)
+      return jsonify({'pricing': pricing_data})
+   except Exception as e:
+      print(f'Error getting pricing for {commander_name}: {e}')
+      return jsonify({'pricing': None})
 
 @app.route('/api/commanders/<commander_name>/printings')
 def api_get_commander_printings(commander_name):
@@ -740,6 +898,7 @@ def api_get_commander_printings(commander_name):
          ]
       }
       
+      # Limit results and use simpler projection to reduce database load
       printings = list(collection.find(printings_query, {
          '_id': 0,  # Exclude ObjectId to avoid JSON serialization issues
          'name': 1,
@@ -748,14 +907,64 @@ def api_get_commander_printings(commander_name):
          'collector_number': 1,
          'rarity': 1,
          'image_uris': 1,
-         'prices': 1,
+         'prices': 1,  # Keep original Scryfall prices as fallback
          'released_at': 1,
-         'mana_cost': 1,
-         'type_line': 1,
-         'oracle_text': 1,
-         'power': 1,
-         'toughness': 1
-      }).sort([('released_at', -1)]))
+         'id': 1,  # Need scryfall_id for pricing lookup
+         'artist': 1
+      }).sort([('released_at', -1)]).limit(50))  # Limit to 50 versions max
+      
+      # Get all pricing data in a single query to avoid rate limits
+      try:
+         pricing_collection = client.mtgecorec.card_pricing_daily
+         scryfall_ids = [p['id'] for p in printings if 'id' in p]
+         
+         if scryfall_ids:
+            # Get all pricing data for these cards in one query
+            all_pricing = list(pricing_collection.find({'scryfall_id': {'$in': scryfall_ids}}))
+         
+         # Create a lookup dict for fast access
+         pricing_lookup = {}
+         for pricing_data in all_pricing:
+            scryfall_id = pricing_data.get('scryfall_id')
+            if scryfall_id:
+               # Extract pricing using the same logic as get_latest_pricing_data
+               usd_price = None
+               usd_foil_price = None
+               
+               # Strategy 1: Extract from 'prices' dictionary
+               prices_dict = pricing_data.get('prices', {})
+               if isinstance(prices_dict, dict):
+                  usd_price = prices_dict.get('usd')
+                  usd_foil_price = prices_dict.get('usd_foil')
+               
+               # Strategy 2: Use price_usd column if prices dict didn't work
+               if not usd_price:
+                  usd_price = pricing_data.get('price_usd')
+               
+               # Strategy 3: Extract from price_type/price_value structure
+               if not usd_price and pricing_data.get('price_type') == 'usd':
+                  usd_price = pricing_data.get('price_value')
+               
+               # Store the pricing data
+               if usd_price and not is_nan(float(usd_price)):
+                  pricing_lookup[scryfall_id] = {
+                     'usd': float(usd_price),
+                     'usd_foil': float(usd_foil_price) if usd_foil_price and not is_nan(float(usd_foil_price)) else None,
+                     'date': pricing_data.get('date')
+                  }
+         
+            # Apply pricing data to each printing
+            for printing in printings:
+               if 'id' in printing and printing['id'] in pricing_lookup:
+                  printing['database_price'] = pricing_lookup[printing['id']]
+                  print(f"DEBUG: Added database price ${pricing_lookup[printing['id']]['usd']:.2f} for {printing.get('set_name', 'Unknown')} (ID: {printing['id']})")
+               else:
+                  print(f"DEBUG: No database price found for {printing.get('set_name', 'Unknown')} (ID: {printing.get('id', 'No ID')}), using Scryfall fallback")
+         else:
+            print("DEBUG: No scryfall_ids found for pricing lookup")
+      except Exception as pricing_error:
+         print(f"WARNING: Could not load pricing data due to rate limiting or error: {pricing_error}")
+         # Continue without pricing data - use Scryfall fallback prices
       
       # Get the primary version (most recent or best image)
       primary_version = None
