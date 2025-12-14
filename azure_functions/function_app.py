@@ -40,18 +40,22 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
     
     logging.info('MTG Pricing Collection function triggered')
     
+    # Initialize variables with default values
+    target_date = date.today().isoformat()
+    max_cards = None
+    skip_existing = True
+    
     try:
         # Parse request parameters
-        target_date = None
-        max_cards = None
-        skip_existing = True
         
         if req.method == "POST":
             try:
                 req_body = req.get_json()
                 if req_body:
-                    target_date = req_body.get('target_date')
-                    max_cards = req_body.get('max_cards')
+                    if 'target_date' in req_body and req_body['target_date']:
+                        target_date = req_body.get('target_date')
+                    if 'max_cards' in req_body:
+                        max_cards = req_body.get('max_cards')
                     skip_existing = not req_body.get('force', False)
             except ValueError:
                 return func.HttpResponse(
@@ -63,9 +67,10 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
                     mimetype="application/json"
                 )
         
-        # URL parameters (for GET requests)
-        if not target_date:
-            target_date = req.params.get('target_date')
+        # URL parameters (for GET requests)  
+        url_target_date = req.params.get('target_date')
+        if url_target_date:
+            target_date = url_target_date
         if not max_cards:
             max_cards_param = req.params.get('max_cards')
             if max_cards_param:
@@ -74,9 +79,7 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
                 except ValueError:
                     pass
         
-        # Set default date if none provided
-        if not target_date:
-            target_date = date.today().isoformat()
+        # Use provided target_date or keep default (already set above)
         
         logging.info(f"Starting pricing collection for date: {target_date}, max_cards: {max_cards}")
         
