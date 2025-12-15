@@ -294,8 +294,8 @@ class MTGPricingPipeline:
                 # Insert to database with duplicate handling
                 if batch_records:
                     try:
-                        # Use ordered=False to continue inserting even if some records are duplicates
-                        result = self.pricing_collection.insert_many(batch_records, ordered=False)
+                        # Use ordered=True for compatibility with Retryable Writes
+                        result = self.pricing_collection.insert_many(batch_records, ordered=True)
                         total_records += len(result.inserted_ids)
                         self.logger.info(f"Inserted {len(result.inserted_ids)}/{len(batch_records)} records")
                     except Exception as e:
