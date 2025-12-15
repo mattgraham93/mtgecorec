@@ -172,21 +172,18 @@ class MTGPricingPipeline:
     def get_cards_needing_pricing(self, target_date: str, skip_existing: bool = True) -> Tuple[Dict, int]:
         """Get query for cards needing pricing"""
         if skip_existing:
-            existing_card_ids = set(
-                record['scryfall_id'] 
-                for record in self.pricing_collection.find(
-                    {'date': target_date}, 
-                    {'scryfall_id': 1}
-                )
-            )
+            # Get count of existing records to inform user
+            existing_count = self.pricing_collection.count_documents({'date': target_date})
+            self.logger.info(f"Found {existing_count:,} cards with existing pricing for {target_date}")
             
-            cards_query = {'id': {'$nin': list(existing_card_ids)}}
-            self.logger.info(f"Skipping {len(existing_card_ids)} cards with existing pricing")
+            # Use a simple query - we'll filter existing cards during processing
+            # This avoids the massive $nin query that exceeds CosmosDB limits
+            cards_query = {}
         else:
             cards_query = {}
         
         total_count = self.cards_collection.count_documents(cards_query)
-        self.logger.info(f"Cards needing pricing: {total_count:,}")
+        self.logger.info(f"Total cards to check: {total_count:,}")
         
         return cards_query, total_count
     
@@ -230,7 +227,18 @@ class MTGPricingPipeline:
         
         current_batch = []
         
+        skip_existing = max_cards is None or max_cards > 100  # Skip existing for large runs
+        
         for card in cards_cursor:
+            # Skip if card already has pricing (for large runs)
+            if skip_existing:
+                existing_record = self.pricing_collection.find_one({
+                    'scryfall_id': card.get('id'),
+                    'date': target_date
+                })
+                if existing_record:
+                    continue
+            
             current_batch.append(card)
             
             if len(current_batch) >= batch_size:
@@ -249,7 +257,7 @@ class MTGPricingPipeline:
                 
                 # Progress logging
                 if cards_processed > 0:
-                    progress_pct = (cards_processed / total_cards_needed) * 100
+                    progress_pct = min((cards_processed / total_cards_needed) * 100, 100)
                     elapsed = time.time() - start_time
                     cards_per_sec = cards_processed / elapsed if elapsed > 0 else 0
                     
