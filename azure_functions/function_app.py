@@ -4,6 +4,9 @@ import os
 from datetime import datetime, date
 import azure.functions as func
 
+# Global lock to prevent concurrent executions
+_pricing_collection_running = False
+
 # Import our pipeline
 import sys
 sys.path.append('/home/site/wwwroot')  # Azure Functions path
@@ -96,7 +99,25 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
     }
     """
     
+    global _pricing_collection_running
+    
     logging.info('MTG Pricing Collection function triggered')
+    
+    # Check if another instance is already running
+    if _pricing_collection_running:
+        logging.warning('Pricing collection already in progress, skipping...')
+        return func.HttpResponse(
+            json.dumps({
+                "status": "skipped",
+                "message": "Another pricing collection is already in progress",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }),
+            status_code=200,
+            mimetype="application/json"
+        )
+    
+    # Set the lock
+    _pricing_collection_running = True
     
     # Initialize variables with default values
     target_date = date.today().isoformat()
@@ -160,6 +181,9 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         records_created = result.get('records_created', 0)
         logging.info(f"Pipeline completed: {cards_processed} cards, {records_created} records")
         
+        # Release the lock
+        _pricing_collection_running = False
+        
         return func.HttpResponse(
             json.dumps(response_data, indent=2),
             status_code=200,
@@ -177,6 +201,9 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
             "error": str(e),
             "target_date": target_date
         }
+        
+        # Release the lock
+        _pricing_collection_running = False
         
         return func.HttpResponse(
             json.dumps(error_response, indent=2),
