@@ -203,24 +203,18 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         if max_cards is None and cards_processed == batch_size:  # Only auto-continue for full runs
             # Check if there are more cards to process
             try:
-                from pricing_pipeline import CosmosDBManager
-                import asyncio
+                from pricing_pipeline import MTGPricingPipeline
                 
-                async def check_remaining():
-                    db_manager = CosmosDBManager()
-                    await db_manager.ensure_connection()
-                    
-                    # Get total cards without pricing for today
-                    total_cards = db_manager.cards_collection.count_documents({})
-                    cards_with_pricing = db_manager.pricing_collection.count_documents({
-                        'date': target_date
-                    })
-                    
-                    remaining = total_cards - cards_with_pricing
-                    await db_manager.close_connection()
-                    return remaining
+                # Create pipeline instance to check remaining cards
+                pipeline = MTGPricingPipeline()
                 
-                remaining_cards = asyncio.run(check_remaining())
+                # Get total cards without pricing for today
+                total_cards = pipeline.cards_collection.count_documents({})
+                cards_with_pricing = pipeline.pricing_collection.count_documents({
+                    'date': target_date
+                })
+                
+                remaining_cards = total_cards - cards_with_pricing
                 
                 if remaining_cards > 0:
                     should_continue = True
