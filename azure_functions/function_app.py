@@ -168,12 +168,19 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         
         # Use provided target_date or keep default (already set above)
         
-        logging.info(f"Starting pricing collection for date: {target_date}, max_cards: {max_cards}")
+        # Set safe batch size for 10-minute timeout (20K cards = ~8.5 minutes at 38 cards/sec)
+        if max_cards is None:
+            batch_size = 20000
+            logging.info(f"Using safe batch size: {batch_size} cards per function call")
+        else:
+            batch_size = max_cards
+            
+        logging.info(f"Starting pricing collection for date: {target_date}, batch_size: {batch_size}")
         
         # Run the pipeline
         result = run_pricing_pipeline_azure_function(
             target_date=target_date,
-            max_cards=max_cards
+            max_cards=batch_size
         )
         
         # Format response
@@ -188,6 +195,71 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         cards_processed = result.get('cards_processed', 0)
         records_created = result.get('records_created', 0)
         logging.info(f"Pipeline completed: {cards_processed} cards, {records_created} records")
+        
+        # Check if we should trigger the next batch
+        should_continue = False
+        next_batch_info = ""
+        
+        if max_cards is None and cards_processed == batch_size:  # Only auto-continue for full runs
+            # Check if there are more cards to process
+            try:
+                from pricing_pipeline import CosmosDBManager
+                import asyncio
+                
+                async def check_remaining():
+                    db_manager = CosmosDBManager()
+                    await db_manager.ensure_connection()
+                    
+                    # Get total cards without pricing for today
+                    total_cards = db_manager.cards_collection.count_documents({})
+                    cards_with_pricing = db_manager.pricing_collection.count_documents({
+                        'date': target_date
+                    })
+                    
+                    remaining = total_cards - cards_with_pricing
+                    await db_manager.close_connection()
+                    return remaining
+                
+                remaining_cards = asyncio.run(check_remaining())
+                
+                if remaining_cards > 0:
+                    should_continue = True
+                    next_batch_info = f"Auto-triggering next batch: {remaining_cards} cards remaining"
+                    logging.info(next_batch_info)
+                    
+                    # Trigger next batch (async, don't wait for it)
+                    import requests
+                    import threading
+                    
+                    def trigger_next_batch():
+                        try:
+                            import time
+                            time.sleep(2)  # Brief delay to avoid immediate collision
+                            
+                            requests.get(
+                                "https://mtgecorec-pricing.azurewebsites.net/api/collect_pricing",
+                                timeout=5
+                            )
+                            logging.info("Successfully triggered next batch")
+                        except Exception as e:
+                            logging.warning(f"Failed to trigger next batch: {e}")
+                    
+                    # Start in background thread so we can return response immediately
+                    threading.Thread(target=trigger_next_batch, daemon=True).start()
+                else:
+                    next_batch_info = "Collection complete - no more cards to process!"
+                    logging.info(next_batch_info)
+                    
+            except Exception as e:
+                logging.warning(f"Failed to check remaining cards: {e}")
+                next_batch_info = "Unable to check for remaining cards"
+        
+        # Add batch info to response
+        response_data["batch_info"] = {
+            "batch_size": batch_size,
+            "auto_continue": should_continue,
+            "next_batch_status": next_batch_info
+        }
         
         # Release the lock
         _pricing_collection_running = False
