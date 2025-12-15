@@ -6,6 +6,7 @@ import azure.functions as func
 
 # Global lock to prevent concurrent executions
 _pricing_collection_running = False
+_pricing_lock_timestamp = None
 
 # Import our pipeline
 import sys
@@ -99,25 +100,32 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
     }
     """
     
-    global _pricing_collection_running
+    global _pricing_collection_running, _pricing_lock_timestamp
     
     logging.info('MTG Pricing Collection function triggered')
     
-    # Check if another instance is already running
+    # Check if another instance is already running (with 15-minute timeout)
+    current_time = datetime.now(timezone.utc)
     if _pricing_collection_running:
-        logging.warning('Pricing collection already in progress, skipping...')
-        return func.HttpResponse(
-            json.dumps({
-                "status": "skipped",
-                "message": "Another pricing collection is already in progress",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }),
-            status_code=200,
-            mimetype="application/json"
-        )
+        if _pricing_lock_timestamp and (current_time - _pricing_lock_timestamp).total_seconds() > 900:  # 15 minutes
+            logging.warning('Pricing lock expired (15+ minutes), resetting...')
+            _pricing_collection_running = False
+            _pricing_lock_timestamp = None
+        else:
+            logging.warning('Pricing collection already in progress, skipping...')
+            return func.HttpResponse(
+                json.dumps({
+                    "status": "skipped",
+                    "message": "Another pricing collection is already in progress",
+                    "timestamp": current_time.isoformat()
+                }),
+                status_code=200,
+                mimetype="application/json"
+            )
     
     # Set the lock
     _pricing_collection_running = True
+    _pricing_lock_timestamp = current_time
     
     # Initialize variables with default values
     target_date = date.today().isoformat()
@@ -211,6 +219,30 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
 
+
+@app.route(route="pricing/reset_lock", methods=["POST"])
+def reset_pricing_lock(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Reset the pricing collection lock - use when function gets stuck
+    """
+    global _pricing_collection_running
+    
+    was_running = _pricing_collection_running
+    _pricing_collection_running = False
+    
+    logging.info(f'Pricing lock reset. Was running: {was_running}')
+    
+    return func.HttpResponse(
+        json.dumps({
+            "status": "success",
+            "message": "Pricing collection lock reset",
+            "was_running": was_running,
+            "now_running": False,
+            "timestamp": datetime.utcnow().isoformat()
+        }),
+        status_code=200,
+        mimetype="application/json"
+    )
 
 @app.route(route="pricing/status", methods=["GET"])
 def pricing_status(req: func.HttpRequest) -> func.HttpResponse:
