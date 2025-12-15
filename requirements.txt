@@ -3,6 +3,9 @@ gunicorn
 # azure-cosmos
 # azure-identity
 pymongo
+
+# Azure Functions (for deployment)
+azure-functions>=1.18.0
 scrython
 ijson
 python-dotenv
