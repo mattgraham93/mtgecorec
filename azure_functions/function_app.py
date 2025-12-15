@@ -13,10 +13,11 @@ try:
     from pricing_pipeline import run_pricing_pipeline_azure_function
     logging.info("Successfully imported pricing_pipeline")
 except Exception as e:
-    logging.error(f"Failed to import pricing_pipeline: {str(e)}")
+    import_error = str(e)
+    logging.error(f"Failed to import pricing_pipeline: {import_error}")
     # Create a dummy function to prevent total failure
     def run_pricing_pipeline_azure_function(*args, **kwargs):
-        return {"error": "Pipeline import failed", "details": str(e)}
+        return {"error": "Pipeline import failed", "details": import_error}
 
 # Create the Function App using v2 programming model
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
