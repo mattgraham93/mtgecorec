@@ -13,6 +13,7 @@ import requests
 from datetime import datetime, timezone, date
 from typing import Dict, List, Optional, Tuple, Any
 from collections import defaultdict
+import random
 
 # Azure Functions optimized imports
 try:
@@ -167,8 +168,41 @@ class MTGPricingPipeline:
             
         except Exception as e:
             self.logger.error(f"Database connection failed: {e}")
-            raise
-    
+            raise    
+    def safe_db_query(self, collection, query, max_retries=3):
+        """Execute database query with rate limiting and retry logic"""
+        for attempt in range(max_retries):
+            try:
+                result = collection.find_one(query)
+                return result
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "TooManyRequests" in error_str or "RequestRateTooLarge" in error_str:
+                    # Extract retry delay if available
+                    retry_delay = 1.0  # Default 1 second
+                    if "RetryAfterMs=" in error_str:
+                        try:
+                            start = error_str.find("RetryAfterMs=") + 13
+                            end = error_str.find(",", start)
+                            if end == -1:
+                                end = error_str.find(" ", start)
+                            retry_delay = float(error_str[start:end]) / 1000.0  # Convert ms to seconds
+                        except:
+                            pass
+                    
+                    # Add jitter and backoff
+                    jittered_delay = retry_delay + random.uniform(0.1, 0.5) + (attempt * 0.5)
+                    
+                    if attempt < max_retries - 1:
+                        self.logger.warning(f"Rate limit hit (attempt {attempt + 1}), waiting {jittered_delay:.2f}s")
+                        time.sleep(jittered_delay)
+                        continue
+                    else:
+                        self.logger.error(f"Rate limit exceeded after {max_retries} attempts")
+                        raise
+                else:
+                    # Non-rate-limit error, don't retry
+                    raise    
     def get_cards_needing_pricing(self, target_date: str, skip_existing: bool = True) -> Tuple[Dict, int]:
         """Get query for cards needing pricing"""
         if skip_existing:
@@ -228,16 +262,26 @@ class MTGPricingPipeline:
         current_batch = []
         
         skip_existing = max_cards is None or max_cards > 100  # Skip existing for large runs
+        card_counter = 0
         
         for card in cards_cursor:
-            # Skip if card already has pricing (for large runs)
-            if skip_existing:
-                existing_record = self.pricing_collection.find_one({
-                    'scryfall_id': card.get('id'),
-                    'date': target_date
-                })
-                if existing_record:
-                    continue
+            card_counter += 1
+            # Skip if card already has pricing (check only every 20th card to reduce load)
+            if skip_existing and card_counter % 20 == 0:
+                try:
+                    existing_record = self.safe_db_query(
+                        self.pricing_collection,
+                        {
+                            'scryfall_id': card.get('id'),
+                            'date': target_date
+                        }
+                    )
+                    if existing_record:
+                        continue
+                except Exception as e:
+                    # If duplicate check fails due to rate limits, process the card anyway
+                    self.logger.warning(f"Duplicate check failed for card {card.get('name', 'unknown')}: {e}")
+                    # Continue processing to avoid losing cards
             
             current_batch.append(card)
             
