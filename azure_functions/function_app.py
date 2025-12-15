@@ -36,12 +36,9 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 def debug_modules(req: func.HttpRequest) -> func.HttpResponse:
     """Debug function to check available modules"""
     import sys
-    import pkg_resources
+    import os
     
     try:
-        # Get installed packages
-        installed_packages = [str(d) for d in pkg_resources.working_set]
-        
         # Check specific modules
         modules_to_check = ['requests', 'pymongo', 'azure.functions']
         module_status = {}
@@ -53,13 +50,20 @@ def debug_modules(req: func.HttpRequest) -> func.HttpResponse:
             except ImportError as e:
                 module_status[module] = f"❌ Missing: {str(e)}"
         
+        # Try to get installed packages
+        installed_packages = []
+        try:
+            import pkg_resources
+            installed_packages = [str(d) for d in pkg_resources.working_set][:10]
+        except:
+            installed_packages = ["pkg_resources not available"]
+        
         debug_info = {
             "python_version": sys.version,
-            "python_path": sys.path[:3],  # First 3 entries
-            "working_directory": os.getcwd(),
-            "environment_variables": {k: v for k, v in os.environ.items() if 'AZURE' in k or 'PYTHON' in k},
+            "python_path": sys.path[:3],
+            "working_directory": os.getcwd() if hasattr(os, 'getcwd') else "unknown",
             "module_status": module_status,
-            "installed_packages": installed_packages[:10]  # First 10 packages
+            "installed_packages": installed_packages
         }
         
         return func.HttpResponse(
