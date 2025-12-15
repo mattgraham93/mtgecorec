@@ -10,17 +10,70 @@ sys.path.append('/home/site/wwwroot')  # Azure Functions path
 sys.path.append('.')  # Local development path
 
 try:
+    # First check if requests is available
+    import requests
+    logging.info("✅ requests module available")
+    
+    # Then try to import the pipeline
     from pricing_pipeline import run_pricing_pipeline_azure_function
-    logging.info("Successfully imported pricing_pipeline")
+    logging.info("✅ Successfully imported pricing_pipeline")
+except ImportError as e:
+    import_error = str(e)
+    logging.error(f"❌ Import failed: {import_error}")
+    # Create a dummy function to prevent total failure
+    def run_pricing_pipeline_azure_function(*args, **kwargs):
+        return {"error": "Pipeline import failed", "details": import_error}
 except Exception as e:
     import_error = str(e)
-    logging.error(f"Failed to import pricing_pipeline: {import_error}")
-    # Create a dummy function to prevent total failure
+    logging.error(f"❌ Unexpected error during import: {import_error}")
     def run_pricing_pipeline_azure_function(*args, **kwargs):
         return {"error": "Pipeline import failed", "details": import_error}
 
 # Create the Function App using v2 programming model
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
+@app.route(route="debug/modules", methods=["GET"])
+def debug_modules(req: func.HttpRequest) -> func.HttpResponse:
+    """Debug function to check available modules"""
+    import sys
+    import pkg_resources
+    
+    try:
+        # Get installed packages
+        installed_packages = [str(d) for d in pkg_resources.working_set]
+        
+        # Check specific modules
+        modules_to_check = ['requests', 'pymongo', 'azure.functions']
+        module_status = {}
+        
+        for module in modules_to_check:
+            try:
+                __import__(module)
+                module_status[module] = "✅ Available"
+            except ImportError as e:
+                module_status[module] = f"❌ Missing: {str(e)}"
+        
+        debug_info = {
+            "python_version": sys.version,
+            "python_path": sys.path[:3],  # First 3 entries
+            "working_directory": os.getcwd(),
+            "environment_variables": {k: v for k, v in os.environ.items() if 'AZURE' in k or 'PYTHON' in k},
+            "module_status": module_status,
+            "installed_packages": installed_packages[:10]  # First 10 packages
+        }
+        
+        return func.HttpResponse(
+            json.dumps(debug_info, indent=2),
+            status_code=200,
+            mimetype="application/json"
+        )
+        
+    except Exception as e:
+        return func.HttpResponse(
+            json.dumps({"error": f"Debug failed: {str(e)}"}),
+            status_code=500,
+            mimetype="application/json"
+        )
 
 @app.route(route="pricing/collect", methods=["GET", "POST"])
 def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
