@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import azure.functions as func
 
 # Global lock to prevent concurrent executions
