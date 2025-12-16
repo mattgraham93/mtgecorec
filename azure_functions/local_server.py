@@ -101,7 +101,19 @@ class LocalFunctionsHandler(BaseHTTPRequestHandler):
             self.wfile.write(error_response.encode())
     
     def load_local_settings(self):
-        """Load local.settings.json or use existing environment variables"""
+        """Load .env file, local.settings.json, or use existing environment variables"""
+        
+        # First, try to load .env file from root directory
+        env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+        if os.path.exists(env_path):
+            with open(env_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        os.environ[key] = value
+        
+        # Then try local.settings.json
         try:
             with open('local.settings.json', 'r') as f:
                 settings = json.load(f)
