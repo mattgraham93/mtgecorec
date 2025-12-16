@@ -196,57 +196,69 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         records_created = result.get('records_created', 0)
         logging.info(f"Pipeline completed: {cards_processed} cards, {records_created} records")
         
-        # Check if we should trigger the next batch
+        # Check if we should trigger the next batch (simplified, no threading)
         should_continue = False
         next_batch_info = ""
         
         if max_cards is None and cards_processed == batch_size:  # Only auto-continue for full runs
-            # Check if there are more cards to process
+            # Check if there are more cards to process for this specific date
             try:
                 from pricing_pipeline import MTGPricingPipeline
                 
                 # Create pipeline instance to check remaining cards
                 pipeline = MTGPricingPipeline()
                 
-                # Get total cards without pricing for today
+                # Get cards that DON'T have pricing for this specific date
+                # This is the correct calculation
                 total_cards = pipeline.cards_collection.count_documents({})
-                cards_with_pricing = pipeline.pricing_collection.count_documents({
-                    'date': target_date
-                })
                 
+                # Find cards that already have pricing for this date
+                cards_with_pricing_ids = set()
+                pricing_cursor = pipeline.pricing_collection.find(
+                    {'date': target_date}, 
+                    {'scryfall_id': 1}
+                )
+                for record in pricing_cursor:
+                    cards_with_pricing_ids.add(record.get('scryfall_id'))
+                
+                cards_with_pricing = len(cards_with_pricing_ids)
                 remaining_cards = total_cards - cards_with_pricing
                 
-                if remaining_cards > 0:
+                logging.info(f"📊 Total cards: {total_cards:,}")
+                logging.info(f"📊 Cards with pricing for {target_date}: {cards_with_pricing:,}")
+                logging.info(f"📊 Remaining cards: {remaining_cards:,}")
+                
+                if remaining_cards > 1000:  # Only continue if meaningful work left
                     should_continue = True
-                    next_batch_info = f"Auto-triggering next batch: {remaining_cards} cards remaining"
+                    next_batch_info = f"Next batch needed: {remaining_cards:,} cards remaining for {target_date}"
                     logging.info(next_batch_info)
                     
-                    # Trigger next batch (async, don't wait for it)
-                    import requests
-                    import threading
-                    
-                    def trigger_next_batch():
-                        try:
-                            import time
-                            time.sleep(2)  # Brief delay to avoid immediate collision
+                    # Simple HTTP trigger (no threading) - just make the request directly
+                    try:
+                        import requests
+                        import time
+                        time.sleep(3)  # Brief delay to avoid collision
+                        
+                        response = requests.get(
+                            "https://mtgecorec-pricing.azurewebsites.net/api/collect_pricing",
+                            timeout=10
+                        )
+                        
+                        if response.status_code == 200:
+                            logging.info("✅ Successfully triggered next batch")
+                        else:
+                            logging.warning(f"⚠️  Next batch trigger returned {response.status_code}")
                             
-                            requests.get(
-                                "https://mtgecorec-pricing.azurewebsites.net/api/collect_pricing",
-                                timeout=5
-                            )
-                            logging.info("Successfully triggered next batch")
-                        except Exception as e:
-                            logging.warning(f"Failed to trigger next batch: {e}")
-                    
-                    # Start in background thread so we can return response immediately
-                    threading.Thread(target=trigger_next_batch, daemon=True).start()
+                    except Exception as e:
+                        logging.warning(f"❌ Failed to trigger next batch: {e}")
+                        next_batch_info += f" (Auto-trigger failed: {e})"
                 else:
-                    next_batch_info = "Collection complete - no more cards to process!"
+                    next_batch_info = f"Collection complete for {target_date}! Only {remaining_cards} cards remaining (below threshold)"
                     logging.info(next_batch_info)
                     
             except Exception as e:
-                logging.warning(f"Failed to check remaining cards: {e}")
-                next_batch_info = "Unable to check for remaining cards"
+                logging.error(f"Failed to check remaining cards: {e}")
+                next_batch_info = f"Unable to check for remaining cards: {e}"
         
         # Add batch info to response
         response_data["batch_info"] = {
