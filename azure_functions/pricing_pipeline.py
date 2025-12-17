@@ -210,21 +210,26 @@ class MTGPricingPipeline:
                     raise    
     def get_cards_needing_pricing(self, target_date: str, skip_existing: bool = True) -> Tuple[Dict, int]:
         """Get query for cards needing pricing"""
+        total_cards = self.cards_collection.count_documents({})
+        
         if skip_existing:
-            # Get count of existing records to inform user
-            existing_count = self.pricing_collection.count_documents({'date': target_date})
-            self.logger.info(f"Found {existing_count:,} cards with existing pricing for {target_date}")
+            # Calculate how many unique cards already have pricing
+            cards_with_pricing = len(self.pricing_collection.distinct('scryfall_id', {'date': target_date}))
+            existing_records = self.pricing_collection.count_documents({'date': target_date})
+            remaining_cards = total_cards - cards_with_pricing
+            
+            self.logger.info(f"Found {existing_records:,} pricing records for {target_date}")
+            self.logger.info(f"Total cards in collection: {total_cards:,}")
+            self.logger.info(f"Unique cards already priced: {cards_with_pricing:,}")
+            self.logger.info(f"Cards remaining to process: {remaining_cards:,}")
             
             # Use a simple query - we'll filter existing cards during processing
-            # This avoids the massive $nin query that exceeds CosmosDB limits
             cards_query = {}
+            return cards_query, remaining_cards
         else:
             cards_query = {}
-        
-        total_count = self.cards_collection.count_documents(cards_query)
-        self.logger.info(f"Total cards to check: {total_count:,}")
-        
-        return cards_query, total_count
+            self.logger.info(f"Total cards to process: {total_cards:,}")
+            return cards_query, total_cards
     
     def run_daily_pipeline(self, 
                           target_date: Optional[str] = None, 
@@ -269,12 +274,23 @@ class MTGPricingPipeline:
         skip_existing = max_cards is None or max_cards > 100  # Skip existing for large runs
         card_counter = 0
         
+        # Pre-fetch list of cards that already have pricing (much more efficient)
+        existing_card_ids = set()
+        if skip_existing:
+            self.logger.info("Pre-fetching list of cards with existing pricing...")
+            existing_card_ids = set(self.pricing_collection.distinct('scryfall_id', {'date': target_date}))
+            self.logger.info(f"Pre-fetched {len(existing_card_ids):,} cards to skip")
+        
         for card in cards_cursor:
             card_counter += 1
-            # Skip duplicate checking for now to conserve RUs - rely on insert error handling
-            # TODO: Re-enable after optimizing RU usage
+            
+            # Check if this card already has pricing (using pre-fetched set)
+            if skip_existing and card.get('id') in existing_card_ids:
+                continue  # Skip this card, it already has pricing
+            
+            # Legacy duplicate checking (disabled for performance)
             skip_duplicate_check = True
-            if skip_existing and not skip_duplicate_check and card_counter % 50 == 0:
+            if False and skip_existing and not skip_duplicate_check and card_counter % 50 == 0:
                 try:
                     existing_record = self.safe_db_query(
                         self.pricing_collection,
