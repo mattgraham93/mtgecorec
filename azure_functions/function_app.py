@@ -416,10 +416,11 @@ def daily_pricing_collection(myTimer: func.TimerRequest) -> None:
     logging.info('Starting scheduled daily pricing collection at 7:00 PM PST...')
     
     try:
-        # Run pricing pipeline with NO LIMIT for full performance test
+        # Run pricing pipeline with reasonable daily limit to avoid timeout
+        # At 22 cards/sec, 8000 cards = ~6 minutes (safe margin under 10min limit)
         result = run_pricing_pipeline_azure_function(
             target_date=None,  # Use today's date
-            max_cards=None     # Process ALL cards to measure time and cost
+            max_cards=8000     # Process 8K cards daily to stay under timeout
         )
         
         cards_processed = result.get('cards_processed', 0)
