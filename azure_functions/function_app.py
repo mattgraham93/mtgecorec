@@ -168,10 +168,10 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         
         # Use provided target_date or keep default (already set above)
         
-        # Set safe batch size for 10-minute timeout (20K cards = ~8.5 minutes at 38 cards/sec)
+        # Set large batch size for 2.5-hour timeout (100K cards = ~115 minutes at 14.4 cards/sec)
         if max_cards is None:
-            batch_size = 20000
-            logging.info(f"Using safe batch size: {batch_size} cards per function call")
+            batch_size = 100000
+            logging.info(f"Using large batch size: {batch_size} cards per function call")
         else:
             batch_size = max_cards
             
@@ -416,11 +416,11 @@ def daily_pricing_collection(myTimer: func.TimerRequest) -> None:
     logging.info('Starting scheduled daily pricing collection at 7:00 PM PST...')
     
     try:
-        # Run pricing pipeline with reasonable daily limit to avoid timeout
-        # At 22 cards/sec, 8000 cards = ~6 minutes (safe margin under 10min limit)
+        # Run pricing pipeline with large daily limit leveraging 2.5-hour timeout
+        # At 14 cards/sec, 100K cards = ~115 minutes (safe margin under 2.5hr limit)
         result = run_pricing_pipeline_azure_function(
             target_date=None,  # Use today's date
-            max_cards=8000     # Process 8K cards daily to stay under timeout
+            max_cards=100000   # Process 100K cards daily with 2.5hr timeout
         )
         
         cards_processed = result.get('cards_processed', 0)
