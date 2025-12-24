@@ -168,10 +168,11 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         
         # Use provided target_date or keep default (already set above)
         
-        # Set large batch size for 2.5-hour timeout (100K cards = ~115 minutes at 14.4 cards/sec)
+        # Reduced batch size due to high memory consumption (12.23M execution units for 100K)
+        # 20K cards should be much more memory efficient
         if max_cards is None:
-            batch_size = 100000
-            logging.info(f"Using large batch size: {batch_size} cards per function call")
+            batch_size = 20000
+            logging.info(f"Using memory-safe batch size: {batch_size} cards per function call")
         else:
             batch_size = max_cards
             
@@ -233,6 +234,7 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
                     next_batch_info = f"Next batch needed: {remaining_cards:,} cards remaining for {target_date}"
                     logging.info(next_batch_info)
                     
+                    # Re-enabled with 20K batch size - much safer memory profile
                     # Simple HTTP trigger (no threading) - just make the request directly
                     try:
                         import requests
@@ -416,11 +418,11 @@ def daily_pricing_collection(myTimer: func.TimerRequest) -> None:
     logging.info('Starting scheduled daily pricing collection at 7:00 PM PST...')
     
     try:
-        # Run pricing pipeline with large daily limit leveraging 2.5-hour timeout
-        # At 14 cards/sec, 100K cards = ~115 minutes (safe margin under 2.5hr limit)
+        # Run pricing pipeline with conservative daily limit due to high memory usage
+        # 20K cards should use reasonable memory vs 100K cards = 12.23M execution units
         result = run_pricing_pipeline_azure_function(
             target_date=None,  # Use today's date
-            max_cards=100000   # Process 100K cards daily with 2.5hr timeout
+            max_cards=20000    # Process 20K cards daily for memory efficiency
         )
         
         cards_processed = result.get('cards_processed', 0)
