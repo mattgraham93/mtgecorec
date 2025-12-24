@@ -172,8 +172,11 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         # Process all cards - no filtering applied
         # Full dataset processing for complete coverage
         if max_cards is None:
-            batch_size = 20000
-            logging.info(f"Using batch size: {batch_size} cards per function call")
+            # With 2.5 hour timeout, we can process all remaining cards in one execution
+            # Current performance: ~18 cards/sec, 92K cards = ~85 minutes (well under 150 min limit)
+            default_batch_size = int(os.getenv('DEFAULT_BATCH_SIZE', '100000'))  # Process all remaining cards at once
+            batch_size = default_batch_size
+            logging.info(f"Using default batch size: {batch_size} cards per function call (2.5h timeout allows single execution)")
         else:
             batch_size = max_cards
             
@@ -202,14 +205,14 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         should_continue = False
         next_batch_info = ""
         
-        # Auto-continue if this was a full batch (not a user-limited run) and we processed the expected batch size
-        # The key insight: max_cards is None only when user doesn't specify a limit (GET requests or POST without max_cards)
-        # When max_cards is None, we set batch_size to 20000, so we should continue if we processed that many
+        # Auto-continue if this was a full batch (not a user-limited run) 
+        # The key insight: continue based on remaining cards, not cards processed in this batch
+        # Many cards may not have pricing data, so batch size != cards processed
         user_specified_limit = req.method == "POST" and req.get_json() and req.get_json().get('max_cards') is not None
         url_max_cards = req.params.get('max_cards') is not None
         is_limited_run = user_specified_limit or url_max_cards
         
-        if not is_limited_run and cards_processed >= batch_size * 0.8:  # Continue if we processed most of a batch
+        if not is_limited_run:  # Continue if this was a full pipeline run (not user-limited)
             # Check if there are more cards to process for this specific date
             try:
                 from pricing_pipeline import MTGPricingPipeline
