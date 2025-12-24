@@ -210,45 +210,30 @@ class MTGPricingPipeline:
                     raise    
     def get_cards_needing_pricing(self, target_date: str, skip_existing: bool = True) -> Tuple[Dict, int]:
         """
-        Get query for cards needing pricing - HOBBY OPTIMIZED: Only high-value cards >$1
-        This reduces processing from 140K cards to ~10-20K cards for cost savings
+        Get query for cards needing pricing - Process ALL cards
         """
         total_cards = self.cards_collection.count_documents({})
         
-        # High-value card filter for hobby-friendly costs
-        high_value_filter = {
-            "$or": [
-                {"prices.usd": {"$gte": 1.0}},      # USD >= $1
-                {"prices.usd_foil": {"$gte": 1.0}}, # USD Foil >= $1  
-                {"prices.eur": {"$gte": 0.9}},      # EUR >= €0.90
-                {"prices.eur_foil": {"$gte": 0.9}}  # EUR Foil >= €0.90
-            ]
-        }
+        # Process all cards (no filtering)
+        base_filter = {}
         
         if skip_existing:
             # Calculate how many unique cards already have pricing
             cards_with_pricing = len(self.pricing_collection.distinct('scryfall_id', {'date': target_date}))
             existing_records = self.pricing_collection.count_documents({'date': target_date})
             
-            # Count high-value cards only
-            high_value_cards = self.cards_collection.count_documents(high_value_filter)
-            remaining_cards = high_value_cards - cards_with_pricing
+            remaining_cards = total_cards - cards_with_pricing
             
             self.logger.info(f"Found {existing_records:,} pricing records for {target_date}")
             self.logger.info(f"Total cards in collection: {total_cards:,}")
-            self.logger.info(f"💰 High-value cards (>$1): {high_value_cards:,}")
             self.logger.info(f"Unique cards already priced: {cards_with_pricing:,}")
-            self.logger.info(f"High-value cards remaining: {remaining_cards:,}")
-            self.logger.info(f"💡 COST SAVINGS: Processing {high_value_cards:,} instead of {total_cards:,} cards!")
+            self.logger.info(f"Cards remaining to process: {remaining_cards:,}")
             
-            # Use high-value filter to dramatically reduce costs
-            return high_value_filter, remaining_cards
+            # Return empty filter to process all cards
+            return base_filter, remaining_cards
         else:
-            high_value_cards = self.cards_collection.count_documents(high_value_filter)
-            self.logger.info(f"Total cards: {total_cards:,}")
-            self.logger.info(f"💰 High-value cards to process: {high_value_cards:,}")
-            self.logger.info(f"💡 HOBBY OPTIMIZATION: Processing only cards >$1")
-            return high_value_filter, high_value_cards
+            self.logger.info(f"Total cards to process: {total_cards:,}")
+            return base_filter, total_cards
     
     def run_daily_pipeline(self, 
                           target_date: Optional[str] = None, 

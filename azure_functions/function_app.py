@@ -97,7 +97,7 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         "target_date": "2025-12-13",  // Date in YYYY-MM-DD format
         "max_cards": 5000,            // Limit cards processed (for chunking)
         "force": false,               // Skip duplicate check if true
-        "hobby_mode": true            // Only process high-value cards >$1 (default: true)
+        "hobby_mode": false           // Process all cards (no filtering)
     }
     """
     
@@ -169,11 +169,11 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         
         # Use provided target_date or keep default (already set above)
         
-        # Hobby-optimized batch size: 20K high-value cards instead of 140K all cards
-        # High-value filtering reduces processing by 80-90% for hobby budgets
+        # Process all cards - no filtering applied
+        # Full dataset processing for complete coverage
         if max_cards is None:
             batch_size = 20000
-            logging.info(f"Using hobby-optimized batch size: {batch_size} high-value cards per function call")
+            logging.info(f"Using batch size: {batch_size} cards per function call")
         else:
             batch_size = max_cards
             
@@ -202,7 +202,14 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
         should_continue = False
         next_batch_info = ""
         
-        if max_cards is None and cards_processed == batch_size:  # Only auto-continue for full runs
+        # Auto-continue if this was a full batch (not a user-limited run) and we processed the expected batch size
+        # The key insight: max_cards is None only when user doesn't specify a limit (GET requests or POST without max_cards)
+        # When max_cards is None, we set batch_size to 20000, so we should continue if we processed that many
+        user_specified_limit = req.method == "POST" and req.get_json() and req.get_json().get('max_cards') is not None
+        url_max_cards = req.params.get('max_cards') is not None
+        is_limited_run = user_specified_limit or url_max_cards
+        
+        if not is_limited_run and cards_processed >= batch_size * 0.8:  # Continue if we processed most of a batch
             # Check if there are more cards to process for this specific date
             try:
                 from pricing_pipeline import MTGPricingPipeline
@@ -419,11 +426,10 @@ def daily_pricing_collection(myTimer: func.TimerRequest) -> None:
     logging.info('Starting scheduled daily pricing collection at 7:00 PM PST...')
     
     try:
-        # Hobby-optimized: Process only high-value cards >$1 for cost efficiency
-        # ~10-20K cards vs 140K = 80-90% cost reduction for hobby budgets  
+        # Process all cards for complete pricing coverage
         result = run_pricing_pipeline_azure_function(
             target_date=None,  # Use today's date
-            max_cards=20000    # Process 20K high-value cards for hobby budget
+            max_cards=20000    # Process 20K cards per batch
         )
         
         cards_processed = result.get('cards_processed', 0)
