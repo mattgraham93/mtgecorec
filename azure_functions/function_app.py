@@ -426,11 +426,31 @@ def daily_pricing_collection(myTimer: func.TimerRequest) -> None:
     logging.info('Starting scheduled daily pricing collection at 7:00 PM PST...')
     
     try:
-        # Process all cards for complete pricing coverage
-        result = run_pricing_pipeline_azure_function(
-            target_date=None,  # Use today's date
-            max_cards=20000    # Process 20K cards per batch
-        )
+        # Trigger the HTTP function which has auto-chaining logic
+        # This ensures complete processing of all cards
+        import requests
+        try:
+            response = requests.get(
+                "https://mtgecorecfunc.azurewebsites.net/api/pricing/collect",
+                timeout=30
+            )
+            if response.status_code == 200:
+                result = response.json()
+                logging.info("✅ Successfully triggered auto-chaining pipeline from timer")
+            else:
+                logging.error(f"❌ HTTP trigger failed: {response.status_code}")
+                # Fallback to direct call
+                result = run_pricing_pipeline_azure_function(
+                    target_date=None,
+                    max_cards=20000
+                )
+        except Exception as e:
+            logging.error(f"❌ HTTP trigger failed: {e}, falling back to direct call")
+            # Fallback to direct call  
+            result = run_pricing_pipeline_azure_function(
+                target_date=None,
+                max_cards=20000
+            )
         
         cards_processed = result.get('cards_processed', 0)
         records_created = result.get('records_created', 0)
