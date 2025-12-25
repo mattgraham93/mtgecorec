@@ -245,15 +245,19 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
                     next_batch_info = f"Next batch needed: {remaining_cards:,} cards remaining for {target_date}"
                     logging.info(next_batch_info)
                     
-                    # Re-enabled with 20K batch size - much safer memory profile
+                    # CRITICAL FIX: Release lock BEFORE triggering next batch to avoid race condition
+                    _pricing_collection_running = False
+                    logging.info("🔓 Released lock before triggering next batch")
+                    
+                    # Re-enabled with 100K batch size - single execution approach
                     # Simple HTTP trigger (no threading) - just make the request directly
                     try:
                         import requests
                         import time
-                        time.sleep(3)  # Brief delay to avoid collision
+                        time.sleep(2)  # Brief delay to ensure lock is released
                         
                         response = requests.get(
-                            "https://mtgecorec-pricing.azurewebsites.net/api/collect_pricing",
+                            "https://mtgecorecfunc.azurewebsites.net/api/pricing/collect",
                             timeout=10
                         )
                         
@@ -280,8 +284,9 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
             "next_batch_status": next_batch_info
         }
         
-        # Release the lock
-        _pricing_collection_running = False
+        # Release the lock (if not already released for auto-chaining)
+        if _pricing_collection_running:
+            _pricing_collection_running = False
         
         return func.HttpResponse(
             json.dumps(response_data, indent=2),
