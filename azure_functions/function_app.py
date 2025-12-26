@@ -257,7 +257,7 @@ def collect_pricing(req: func.HttpRequest) -> func.HttpResponse:
                         time.sleep(2)  # Brief delay to ensure lock is released
                         
                         response = requests.get(
-                            "https://mtgecorecfunc.azurewebsites.net/api/pricing/collect",
+                            "https://mtgecorecfunc-akeuc0excwg9h7dd.westus3-01.azurewebsites.net/api/pricing/collect",
                             timeout=10
                         )
                         
@@ -439,7 +439,7 @@ def daily_pricing_collection(myTimer: func.TimerRequest) -> None:
         import requests
         try:
             response = requests.get(
-                "https://mtgecorecfunc.azurewebsites.net/api/pricing/collect",
+                "https://mtgecorecfunc-akeuc0excwg9h7dd.westus3-01.azurewebsites.net/api/pricing/collect",
                 timeout=30
             )
             if response.status_code == 200:

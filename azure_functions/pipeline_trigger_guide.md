@@ -37,10 +37,10 @@ az functionapp function invoke \
 ### Option B: Using curl/HTTP requests
 ```bash
 # GET request (simple trigger)
-curl "https://mtgecorecfunc.azurewebsites.net/api/pricing/collect"
+curl "https://mtgecorecfunc-akeuc0excwg9h7dd.westus3-01.azurewebsites.net/api/pricing/collect"
 
 # POST request (with parameters)
-curl -X POST "https://mtgecorecfunc.azurewebsites.net/api/pricing/collect" \
+curl -X POST "https://mtgecorecfunc-akeuc0excwg9h7dd.westus3-01.azurewebsites.net/api/pricing/collect" \
   -H "Content-Type: application/json" \
   -d '{
     "target_date": "2024-12-14",
@@ -89,5 +89,5 @@ print(f'Records collected today: {count}')
 ## Quick Health Check
 Start with `health_check` function to test connectivity:
 ```bash
-curl "https://mtgecorecfunc.azurewebsites.net/api/health_check"
+curl "https://mtgecorecfunc-akeuc0excwg9h7dd.westus3-01.azurewebsites.net/api/health_check"
 ```
