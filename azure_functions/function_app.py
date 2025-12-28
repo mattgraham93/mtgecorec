@@ -437,27 +437,44 @@ def daily_pricing_collection(myTimer: func.TimerRequest) -> None:
         # Trigger the HTTP function which has auto-chaining logic
         # This ensures complete processing of all cards
         import requests
-        try:
-            response = requests.get(
-                "https://mtgecorecfunc-akeuc0excwg9h7dd.westus3-01.azurewebsites.net/api/pricing/collect",
-                timeout=30
-            )
-            if response.status_code == 200:
-                result = response.json()
-                logging.info("✅ Successfully triggered auto-chaining pipeline from timer")
-            else:
-                logging.error(f"❌ HTTP trigger failed: {response.status_code}")
-                # Fallback to direct call
-                result = run_pricing_pipeline_azure_function(
-                    target_date=None,
-                    max_cards=20000
+        import time
+        
+        # Retry the HTTP trigger up to 3 times with increasing timeouts
+        max_retries = 3
+        timeouts = [60, 120, 180]  # Longer timeouts for each retry
+        
+        result = None
+        http_success = False
+        
+        for attempt in range(max_retries):
+            try:
+                timeout = timeouts[attempt]
+                logging.info(f"🔄 HTTP trigger attempt {attempt + 1}/{max_retries} (timeout: {timeout}s)")
+                
+                response = requests.get(
+                    "https://mtgecorecfunc-akeuc0excwg9h7dd.westus3-01.azurewebsites.net/api/pricing/collect",
+                    timeout=timeout
                 )
-        except Exception as e:
-            logging.error(f"❌ HTTP trigger failed: {e}, falling back to direct call")
-            # Fallback to direct call  
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    logging.info("✅ Successfully triggered auto-chaining pipeline from timer")
+                    http_success = True
+                    break
+                else:
+                    logging.warning(f"⚠️ HTTP trigger returned {response.status_code}")
+                    
+            except Exception as e:
+                logging.warning(f"❌ HTTP trigger attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(10)  # Wait before retry
+        
+        # If HTTP trigger failed, use direct call with UNLIMITED processing
+        if not http_success:
+            logging.info("🔄 All HTTP attempts failed, using direct call with auto-chaining capability")
             result = run_pricing_pipeline_azure_function(
                 target_date=None,
-                max_cards=20000
+                max_cards=None  # CRITICAL: Use None to enable auto-chaining in direct calls too
             )
         
         cards_processed = result.get('cards_processed', 0)
