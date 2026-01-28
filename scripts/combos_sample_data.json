@@ -1,0 +1,158 @@
+[
+  {
+    "combo_id": "infinite_damage_001",
+    "name": "Mike and Trike",
+    "description": "Infinite damage combo using Mikaeus and Triskelion",
+    "cards": [
+      {"name": "Mikaeus, the Unhallowed", "role": "enabler"},
+      {"name": "Triskelion", "role": "payoff"}
+    ],
+    "combo_type": "infinite_damage",
+    "steps": ["Have Mikaeus on battlefield", "Have Triskelion on battlefield", "Activate Triskelion to deal damage to itself", "Triskelion returns with undying", "Repeat for infinite damage"],
+    "prerequisites": ["Both creatures on battlefield"],
+    "popularity": 8500,
+    "source": "manual"
+  },
+  {
+    "combo_id": "game_win_001",
+    "name": "Thassa's Oracle + Consultation",
+    "description": "Win by exiling library with Thassa's Oracle",
+    "cards": [
+      {"name": "Thassa's Oracle", "role": "payoff"},
+      {"name": "Demonic Consultation", "role": "enabler"}
+    ],
+    "combo_type": "game_win",
+    "steps": ["Cast Demonic Consultation naming a card not in deck", "Exile entire library", "Cast Thassa's Oracle", "Win the game"],
+    "prerequisites": [],
+    "popularity": 12000,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_mana_001",
+    "name": "Dramatic Scepter",
+    "description": "Infinite mana with Dramatic Reversal and Isochron Scepter",
+    "cards": [
+      {"name": "Isochron Scepter", "role": "enabler"},
+      {"name": "Dramatic Reversal", "role": "enabler"}
+    ],
+    "combo_type": "infinite_mana",
+    "steps": ["Imprint Dramatic Reversal on Isochron Scepter", "Have mana rocks producing 3+ mana", "Activate Scepter", "Untap all permanents", "Repeat for infinite mana"],
+    "prerequisites": ["Mana sources producing 3+ mana"],
+    "popularity": 9500,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_mana_002",
+    "name": "Worldgorger Loop",
+    "description": "Infinite mana and ETBs with Worldgorger Dragon and Animate Dead",
+    "cards": [
+      {"name": "Worldgorger Dragon", "role": "enabler"},
+      {"name": "Animate Dead", "role": "enabler"}
+    ],
+    "combo_type": "infinite_mana",
+    "steps": ["Have Worldgorger Dragon in graveyard", "Cast Animate Dead targeting Worldgorger", "Worldgorger ETB exiles all other permanents", "Animate Dead leaves, Worldgorger dies", "All permanents return untapped", "Repeat for infinite mana"],
+    "prerequisites": ["Worldgorger in graveyard", "Mana sources on battlefield"],
+    "popularity": 3200,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_damage_002",
+    "name": "Heliod Walking Ballista",
+    "description": "Infinite damage with Heliod and Walking Ballista",
+    "cards": [
+      {"name": "Heliod, Sun-Crowned", "role": "enabler"},
+      {"name": "Walking Ballista", "role": "payoff"}
+    ],
+    "combo_type": "infinite_damage",
+    "steps": ["Have Heliod on battlefield", "Cast Walking Ballista with X=1+", "Activate Ballista to deal 1 damage", "Heliod triggers, put +1/+1 on Ballista", "Repeat for infinite damage"],
+    "prerequisites": ["Both cards on battlefield"],
+    "popularity": 7800,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_draw_001",
+    "name": "Underworld Breach + Lion's Eye Diamond",
+    "description": "Infinite draw and mana",
+    "cards": [
+      {"name": "Underworld Breach", "role": "enabler"},
+      {"name": "Lion's Eye Diamond", "role": "enabler"}
+    ],
+    "combo_type": "infinite_draw",
+    "steps": ["Have Underworld Breach on battlefield", "Cast Lion's Eye Diamond", "Discard hand to LED", "Cast from graveyard via Breach", "Repeat for infinite draw"],
+    "prerequisites": ["Underworld Breach on battlefield"],
+    "popularity": 6200,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_tokens_001",
+    "name": "Doubling Season + Anointed Procession",
+    "description": "Infinite token generation with token doublers",
+    "cards": [
+      {"name": "Doubling Season", "role": "enabler"},
+      {"name": "Anointed Procession", "role": "enabler"},
+      {"name": "Any token producer", "role": "payoff"}
+    ],
+    "combo_type": "infinite_tokens",
+    "steps": ["Have both doublers on battlefield", "Create any token", "Each doubler creates copies exponentially", "Accumulate infinite tokens"],
+    "prerequisites": ["Token producer, both doublers"],
+    "popularity": 5100,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_etb_001",
+    "name": "Soulherder + Ephemerate",
+    "description": "Infinite ETB triggers",
+    "cards": [
+      {"name": "Soulherder", "role": "enabler"},
+      {"name": "Ephemerate", "role": "enabler"},
+      {"name": "Any creature", "role": "payoff"}
+    ],
+    "combo_type": "infinite_etb",
+    "steps": ["Have Soulherder on battlefield", "Cast/control a creature", "Cast Ephemerate", "Soulherder blinks on ETB", "Repeat for infinite ETBs"],
+    "prerequisites": ["Soulherder and creature"],
+    "popularity": 4500,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_mill_001",
+    "name": "Painter's Grinder",
+    "description": "Infinite mill combo",
+    "cards": [
+      {"name": "Painter's Servant", "role": "enabler"},
+      {"name": "Grindstone", "role": "payoff"}
+    ],
+    "combo_type": "infinite_mill",
+    "steps": ["Have Painter's Servant on battlefield", "Activate Grindstone", "Mill cards, all same color", "Repeat for infinite mill"],
+    "prerequisites": ["Both on battlefield"],
+    "popularity": 3800,
+    "source": "manual"
+  },
+  {
+    "combo_id": "infinite_mana_003",
+    "name": "Basalt Monolith + Rings of Brighthearth",
+    "description": "Infinite colorless mana",
+    "cards": [
+      {"name": "Basalt Monolith", "role": "enabler"},
+      {"name": "Rings of Brighthearth", "role": "enabler"}
+    ],
+    "combo_type": "infinite_mana",
+    "steps": ["Have both artifacts on battlefield", "Activate Basalt Monolith", "Copy activation with Rings", "Untap Monolith", "Repeat for infinite mana"],
+    "prerequisites": ["Both artifacts, 3 mana per cycle"],
+    "popularity": 6800,
+    "source": "manual"
+  },
+  {
+    "combo_id": "game_win_002",
+    "name": "Aetherflux Reservoir + Spell Loop",
+    "description": "Win through infinite damage from reservoir",
+    "cards": [
+      {"name": "Aetherflux Reservoir", "role": "payoff"},
+      {"name": "Any spell storm enabler", "role": "enabler"}
+    ],
+    "combo_type": "game_win",
+    "steps": ["Cast many spells to gain life", "Aetherflux deals damage", "Build to lethal"],
+    "prerequisites": ["Spell generation engine"],
+    "popularity": 5600,
+    "source": "manual"
+  }
+]

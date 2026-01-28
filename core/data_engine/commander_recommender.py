@@ -3,9 +3,14 @@ commander_recommender.py - Core Commander deck recommendation engine
 
 This module provides the main recommendation system for Commander deck building,
 combining synergy analysis, AI insights, and strategic deck building principles.
+
+Features:
+- Traditional synergy-based recommendations (legacy)
+- New CardScorer-based recommendations (Phase 2) - Enabled via USE_NEW_SCORING env var
 """
 import sys
 import os
+import logging
 from typing import List, Dict, Set, Optional, Tuple, Any
 from dataclasses import dataclass
 import random
@@ -18,6 +23,21 @@ from data_engine.cosmos_driver import get_mongo_client, get_collection
 from data_engine.commander_model import CommanderCard, CommanderDeck, CommanderAnalyzer, CommanderArchetype, ColorIdentity
 from data_engine.synergy_analyzer import SynergyAnalyzer, SynergyScore
 from data_engine.perplexity_client import PerplexityClient
+
+logger = logging.getLogger(__name__)
+
+# Feature flag: Enable new CardScorer-based recommendations (Phase 2)
+# Default: False (safe fallback to legacy system)
+# Set to 'true' to enable new scoring engine
+USE_NEW_SCORING = os.getenv('USE_NEW_SCORING', 'false').lower() == 'true'
+
+if USE_NEW_SCORING:
+    try:
+        from data_engine.scoring_adapter import ScoringAdapter
+        logger.info("CardScorer-based recommendations ENABLED (USE_NEW_SCORING=true)")
+    except ImportError as e:
+        logger.warning(f"Failed to load ScoringAdapter: {e}. Falling back to legacy system.")
+        USE_NEW_SCORING = False
 
 
 @dataclass

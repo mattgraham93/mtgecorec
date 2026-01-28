@@ -1,0 +1,353 @@
+mechanic,category,length,has_space,has_hyphen,word_count
+Living weapon,keyword_ability,13,True,False,2
+Jump-start,keyword_ability,10,False,True,1
+Commander ninjutsu,keyword_ability,18,True,False,2
+Legendary landwalk,keyword_ability,18,True,False,2
+Nonbasic landwalk,keyword_ability,17,True,False,2
+Megamorph,keyword_ability,9,False,False,1
+Haunt,keyword_ability,5,False,False,1
+Forecast,keyword_ability,8,False,False,1
+Graft,keyword_ability,5,False,False,1
+Fortify,keyword_ability,7,False,False,1
+Frenzy,keyword_ability,6,False,False,1
+Gravestorm,keyword_ability,10,False,False,1
+Hideaway,keyword_ability,8,False,False,1
+Level Up,keyword_ability,8,True,False,2
+Infect,keyword_ability,6,False,False,1
+Reach,keyword_ability,5,False,False,1
+Rampage,keyword_ability,7,False,False,1
+Phasing,keyword_ability,7,False,False,1
+Multikicker,keyword_ability,11,False,False,1
+Morph,keyword_ability,5,False,False,1
+Provoke,keyword_ability,7,False,False,1
+Modular,keyword_ability,7,False,False,1
+Ninjutsu,keyword_ability,8,False,False,1
+Replicate,keyword_ability,9,False,False,1
+Recover,keyword_ability,7,False,False,1
+Poisonous,keyword_ability,9,False,False,1
+Reinforce,keyword_ability,9,False,False,1
+Persist,keyword_ability,7,False,False,1
+Retrace,keyword_ability,7,False,False,1
+Rebound,keyword_ability,7,False,False,1
+Miracle,keyword_ability,7,False,False,1
+Overload,keyword_ability,8,False,False,1
+Outlast,keyword_ability,7,False,False,1
+Prowess,keyword_ability,7,False,False,1
+Renown,keyword_ability,6,False,False,1
+Myriad,keyword_ability,6,False,False,1
+Shroud,keyword_ability,6,False,False,1
+Trample,keyword_ability,7,False,False,1
+Vigilance,keyword_ability,9,False,False,1
+Storm,keyword_ability,5,False,False,1
+Soulshift,keyword_ability,9,False,False,1
+Splice,keyword_ability,6,False,False,1
+Transmute,keyword_ability,9,False,False,1
+Ripple,keyword_ability,6,False,False,1
+Suspend,keyword_ability,7,False,False,1
+Vanishing,keyword_ability,9,False,False,1
+Transfigure,keyword_ability,11,False,False,1
+Wither,keyword_ability,6,False,False,1
+Undying,keyword_ability,7,False,False,1
+Soulbond,keyword_ability,8,False,False,1
+Unleash,keyword_ability,7,False,False,1
+Ascend,keyword_ability,6,False,False,1
+Assist,keyword_ability,6,False,False,1
+Afterlife,keyword_ability,9,False,False,1
+Companion,keyword_ability,9,False,False,1
+Fabricate,keyword_ability,9,False,False,1
+Embalm,keyword_ability,6,False,False,1
+Escape,keyword_ability,6,False,False,1
+Fuse,keyword_ability,4,False,False,1
+Menace,keyword_ability,6,False,False,1
+Ingest,keyword_ability,6,False,False,1
+Melee,keyword_ability,5,False,False,1
+Improvise,keyword_ability,9,False,False,1
+Mentor,keyword_ability,6,False,False,1
+Partner,keyword_ability,7,False,False,1
+Mutate,keyword_ability,6,False,False,1
+Tribute,keyword_ability,7,False,False,1
+Surge,keyword_ability,5,False,False,1
+Skulk,keyword_ability,5,False,False,1
+Riot,keyword_ability,4,False,False,1
+Spectacle,keyword_ability,9,False,False,1
+Forestwalk,keyword_ability,10,False,False,1
+Islandwalk,keyword_ability,10,False,False,1
+Mountainwalk,keyword_ability,12,False,False,1
+Double strike,keyword_ability,13,True,False,2
+Cumulative upkeep,keyword_ability,17,True,False,2
+First strike,keyword_ability,12,True,False,2
+Scavenge,keyword_ability,8,False,False,1
+Encore,keyword_ability,6,False,False,1
+Deathtouch,keyword_ability,10,False,False,1
+Defender,keyword_ability,8,False,False,1
+Amplify,keyword_ability,7,False,False,1
+Affinity,keyword_ability,8,False,False,1
+Bushido,keyword_ability,7,False,False,1
+Convoke,keyword_ability,7,False,False,1
+Bloodthirst,keyword_ability,11,False,False,1
+Absorb,keyword_ability,6,False,False,1
+Aura Swap,keyword_ability,9,True,False,2
+Changeling,keyword_ability,10,False,False,1
+Conspire,keyword_ability,8,False,False,1
+Cascade,keyword_ability,7,False,False,1
+Annihilator,keyword_ability,11,False,False,1
+Battle Cry,keyword_ability,10,True,False,2
+Cipher,keyword_ability,6,False,False,1
+Bestow,keyword_ability,6,False,False,1
+Dash,keyword_ability,4,False,False,1
+Awaken,keyword_ability,6,False,False,1
+Crew,keyword_ability,4,False,False,1
+Aftermath,keyword_ability,9,False,False,1
+Afflict,keyword_ability,7,False,False,1
+Flanking,keyword_ability,8,False,False,1
+Foretell,keyword_ability,8,False,False,1
+Fading,keyword_ability,6,False,False,1
+Eternalize,keyword_ability,10,False,False,1
+Entwine,keyword_ability,7,False,False,1
+Epic,keyword_ability,4,False,False,1
+Dredge,keyword_ability,6,False,False,1
+Delve,keyword_ability,5,False,False,1
+Evoke,keyword_ability,5,False,False,1
+Exalted,keyword_ability,7,False,False,1
+Evolve,keyword_ability,6,False,False,1
+Extort,keyword_ability,6,False,False,1
+Dethrone,keyword_ability,8,False,False,1
+Exploit,keyword_ability,7,False,False,1
+Devoid,keyword_ability,6,False,False,1
+Emerge,keyword_ability,6,False,False,1
+Escalate,keyword_ability,8,False,False,1
+Flying,keyword_ability,6,False,False,1
+Haste,keyword_ability,5,False,False,1
+Hexproof,keyword_ability,8,False,False,1
+Indestructible,keyword_ability,14,False,False,1
+Intimidate,keyword_ability,10,False,False,1
+Lifelink,keyword_ability,8,False,False,1
+Horsemanship,keyword_ability,12,False,False,1
+Kicker,keyword_ability,6,False,False,1
+Madness,keyword_ability,7,False,False,1
+Swampwalk,keyword_ability,9,False,False,1
+Desertwalk,keyword_ability,10,False,False,1
+Craft,keyword_ability,5,False,False,1
+Plainswalk,keyword_ability,10,False,False,1
+Split second,keyword_ability,12,True,False,2
+Augment,keyword_ability,7,False,False,1
+Double agenda,keyword_ability,13,True,False,2
+Reconfigure,keyword_ability,11,False,False,1
+Ward,keyword_ability,4,False,False,1
+Partner with,keyword_ability,12,True,False,2
+Daybound,keyword_ability,8,False,False,1
+Nightbound,keyword_ability,10,False,False,1
+Decayed,keyword_ability,7,False,False,1
+Disturb,keyword_ability,7,False,False,1
+Squad,keyword_ability,5,False,False,1
+Enlist,keyword_ability,6,False,False,1
+Read Ahead,keyword_ability,10,True,False,2
+Ravenous,keyword_ability,8,False,False,1
+Blitz,keyword_ability,5,False,False,1
+Offering,keyword_ability,8,False,False,1
+Living metal,keyword_ability,12,True,False,2
+Backup,keyword_ability,6,False,False,1
+Banding,keyword_ability,7,False,False,1
+Hidden agenda,keyword_ability,13,True,False,2
+For Mirrodin!,keyword_ability,13,True,False,2
+Friends forever,keyword_ability,15,True,False,2
+Casualty,keyword_ability,8,False,False,1
+Protection,keyword_ability,10,False,False,1
+Compleated,keyword_ability,10,False,False,1
+Sneak,keyword_ability,5,False,False,1
+Enchant,keyword_ability,7,False,False,1
+Flash,keyword_ability,5,False,False,1
+Boast,keyword_ability,5,False,False,1
+Demonstrate,keyword_ability,11,False,False,1
+Sunburst,keyword_ability,8,False,False,1
+Flashback,keyword_ability,9,False,False,1
+Cycling,keyword_ability,7,False,False,1
+Equip,keyword_ability,5,False,False,1
+Buyback,keyword_ability,7,False,False,1
+Hexproof from,keyword_ability,13,True,False,2
+More Than Meets the Eye,keyword_ability,23,True,False,5
+Cleave,keyword_ability,6,False,False,1
+Champion,keyword_ability,8,False,False,1
+Specialize,keyword_ability,10,False,False,1
+Training,keyword_ability,8,False,False,1
+Prototype,keyword_ability,9,False,False,1
+Toxic,keyword_ability,5,False,False,1
+Unearth,keyword_ability,7,False,False,1
+Intensity,keyword_ability,9,False,False,1
+Plainscycling,keyword_ability,13,False,False,1
+Swampcycling,keyword_ability,12,False,False,1
+Typecycling,keyword_ability,11,False,False,1
+Wizardcycling,keyword_ability,13,False,False,1
+Mountaincycling,keyword_ability,15,False,False,1
+Basic landcycling,keyword_ability,17,True,False,2
+Islandcycling,keyword_ability,13,False,False,1
+Forestcycling,keyword_ability,13,False,False,1
+Slivercycling,keyword_ability,13,False,False,1
+Landcycling,keyword_ability,11,False,False,1
+Bargain,keyword_ability,7,False,False,1
+Choose a background,keyword_ability,19,True,False,3
+Echo,keyword_ability,4,False,False,1
+Disguise,keyword_ability,8,False,False,1
+Doctor's companion,keyword_ability,18,True,False,2
+Landwalk,keyword_ability,8,False,False,1
+Umbra armor,keyword_ability,11,True,False,2
+Freerunning,keyword_ability,11,False,False,1
+Spree,keyword_ability,5,False,False,1
+Saddle,keyword_ability,6,False,False,1
+Shadow,keyword_ability,6,False,False,1
+Warp,keyword_ability,4,False,False,1
+Station,keyword_ability,7,False,False,1
+Devour,keyword_ability,6,False,False,1
+Undaunted,keyword_ability,9,False,False,1
+Offspring,keyword_ability,9,False,False,1
+Impending,keyword_ability,9,False,False,1
+Gift,keyword_ability,4,False,False,1
+Harmonize,keyword_ability,9,False,False,1
+Exhaust,keyword_ability,7,False,False,1
+Max speed,keyword_ability,9,True,False,2
+Fear,keyword_ability,4,False,False,1
+Tiered,keyword_ability,6,False,False,1
+Mobilize,keyword_ability,8,False,False,1
+Double team,keyword_ability,11,True,False,2
+Job select,keyword_ability,10,True,False,2
+Mayhem,keyword_ability,6,False,False,1
+Web-slinging,keyword_ability,12,False,True,1
+Prowl,keyword_ability,5,False,False,1
+Solved,keyword_ability,6,False,False,1
+Firebending,keyword_ability,11,False,False,1
+Seek,keyword_action,4,False,False,1
+Activate,keyword_action,8,False,False,1
+Attach,keyword_action,6,False,False,1
+Cast,keyword_action,4,False,False,1
+Counter,keyword_action,7,False,False,1
+Create,keyword_action,6,False,False,1
+Destroy,keyword_action,7,False,False,1
+Discard,keyword_action,7,False,False,1
+Double,keyword_action,6,False,False,1
+Exchange,keyword_action,8,False,False,1
+Exile,keyword_action,5,False,False,1
+Adapt,keyword_action,5,False,False,1
+Support,keyword_action,7,False,False,1
+Play,keyword_action,4,False,False,1
+Regenerate,keyword_action,10,False,False,1
+Reveal,keyword_action,6,False,False,1
+Sacrifice,keyword_action,9,False,False,1
+Shuffle,keyword_action,7,False,False,1
+Tap,keyword_action,3,False,False,1
+Untap,keyword_action,5,False,False,1
+Vote,keyword_action,4,False,False,1
+Time Travel,keyword_action,11,True,False,2
+Goad,keyword_action,4,False,False,1
+Transform,keyword_action,9,False,False,1
+Surveil,keyword_action,7,False,False,1
+Planeswalk,keyword_action,10,False,False,1
+Mill,keyword_action,4,False,False,1
+Learn,keyword_action,5,False,False,1
+Connive,keyword_action,7,False,False,1
+Venture into the dungeon,keyword_action,24,True,False,4
+Exert,keyword_action,5,False,False,1
+Open an Attraction,keyword_action,18,True,False,3
+Food,keyword_action,4,False,False,1
+Discover,keyword_action,8,False,False,1
+Abandon,keyword_action,7,False,False,1
+Explore,keyword_action,7,False,False,1
+Treasure,keyword_action,8,False,False,1
+Roll to Visit Your Attractions,keyword_action,30,True,False,5
+Set in motion,keyword_action,13,True,False,3
+Fateseal,keyword_action,8,False,False,1
+Manifest,keyword_action,8,False,False,1
+Populate,keyword_action,8,False,False,1
+Detain,keyword_action,6,False,False,1
+Investigate,keyword_action,11,False,False,1
+Monstrosity,keyword_action,11,False,False,1
+Clash,keyword_action,5,False,False,1
+Scry,keyword_action,4,False,False,1
+Incubate,keyword_action,8,False,False,1
+Proliferate,keyword_action,11,False,False,1
+Meld,keyword_action,4,False,False,1
+Convert,keyword_action,7,False,False,1
+Fight,keyword_action,5,False,False,1
+Bolster,keyword_action,7,False,False,1
+Assemble,keyword_action,8,False,False,1
+Conjure,keyword_action,7,False,False,1
+Amass,keyword_action,5,False,False,1
+Cloak,keyword_action,5,False,False,1
+Suspect,keyword_action,7,False,False,1
+Collect evidence,keyword_action,16,True,False,2
+Role token,keyword_action,10,True,False,2
+Plot,keyword_action,4,False,False,1
+Heist,keyword_action,5,False,False,1
+Forage,keyword_action,6,False,False,1
+Manifest dread,keyword_action,14,True,False,2
+Endure,keyword_action,6,False,False,1
+Waterbend,keyword_action,9,False,False,1
+Airbend,keyword_action,7,False,False,1
+Earthbend,keyword_action,9,False,False,1
+Blight,keyword_action,6,False,False,1
+Behold,keyword_action,6,False,False,1
+Eerie,ability_word,5,False,False,1
+Battalion,ability_word,9,False,False,1
+Bloodrush,ability_word,9,False,False,1
+Channel,ability_word,7,False,False,1
+Chroma,ability_word,6,False,False,1
+Cohort,ability_word,6,False,False,1
+Constellation,ability_word,13,False,False,1
+Converge,ability_word,8,False,False,1
+Delirium,ability_word,8,False,False,1
+Domain,ability_word,6,False,False,1
+Fateful hour,ability_word,12,True,False,2
+Ferocious,ability_word,9,False,False,1
+Formidable,ability_word,10,False,False,1
+Grandeur,ability_word,8,False,False,1
+Hellbent,ability_word,8,False,False,1
+Heroic,ability_word,6,False,False,1
+Imprint,ability_word,7,False,False,1
+Inspired,ability_word,8,False,False,1
+Join forces,ability_word,11,True,False,2
+Kinship,ability_word,7,False,False,1
+Landfall,ability_word,8,False,False,1
+Lieutenant,ability_word,10,False,False,1
+Metalcraft,ability_word,10,False,False,1
+Morbid,ability_word,6,False,False,1
+Parley,ability_word,6,False,False,1
+Radiance,ability_word,8,False,False,1
+Raid,ability_word,4,False,False,1
+Rally,ability_word,5,False,False,1
+Spell mastery,ability_word,13,True,False,2
+Strive,ability_word,6,False,False,1
+Sweep,ability_word,5,False,False,1
+Tempting offer,ability_word,14,True,False,2
+Threshold,ability_word,9,False,False,1
+Will of the council,ability_word,19,True,False,4
+Adamant,ability_word,7,False,False,1
+Addendum,ability_word,8,False,False,1
+Council's dilemma,ability_word,17,True,False,2
+Eminence,ability_word,8,False,False,1
+Enrage,ability_word,6,False,False,1
+Hero's Reward,ability_word,13,True,False,2
+Kinfall,ability_word,7,False,False,1
+Landship,ability_word,8,False,False,1
+Legacy,ability_word,6,False,False,1
+Revolt,ability_word,6,False,False,1
+Underdog,ability_word,8,False,False,1
+Undergrowth,ability_word,11,False,False,1
+Void,ability_word,4,False,False,1
+Descend,ability_word,7,False,False,1
+Fathomless descent,ability_word,18,True,False,2
+Magecraft,ability_word,9,False,False,1
+Teamwork,ability_word,8,False,False,1
+Pack tactics,ability_word,12,True,False,2
+Coven,ability_word,5,False,False,1
+Alliance,ability_word,8,False,False,1
+Corrupted,ability_word,9,False,False,1
+Secret council,ability_word,14,True,False,2
+Celebration,ability_word,11,False,False,1
+Paradox,ability_word,7,False,False,1
+Disappear,ability_word,9,False,False,1
+Will of the Planeswalkers,ability_word,25,True,False,4
+Survival,ability_word,8,False,False,1
+Flurry,ability_word,6,False,False,1
+Valiant,ability_word,7,False,False,1
+Start your engines!,ability_word,19,True,False,3
+Renew,ability_word,5,False,False,1
+Vivid,ability_word,5,False,False,1

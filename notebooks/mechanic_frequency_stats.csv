@@ -1,0 +1,305 @@
+mechanic,count,category,pct_of_cards
+cast,1441,keyword_action,19.200532978014657
+flying,1265,keyword_ability,16.855429713524316
+counter,1108,keyword_action,14.763491005996002
+sacrifice,1047,keyword_action,13.950699533644237
+create,1004,keyword_action,13.377748167888074
+exile,1002,keyword_action,13.35109926715523
+destroy,676,keyword_action,9.007328447701532
+shuffle,468,keyword_action,6.235842771485676
+discard,459,keyword_action,6.115922718187875
+haste,431,keyword_ability,5.742838107928048
+trample,418,keyword_ability,5.5696202531645564
+tap,402,keyword_action,5.356429047301798
+enchant,380,keyword_ability,5.063291139240507
+reveal,366,keyword_action,4.876748834110592
+activate,333,keyword_action,4.437041972018655
+untap,309,keyword_action,4.117255163224517
+vigilance,261,keyword_ability,3.4776815456362424
+first strike,204,keyword_ability,2.7181878747501664
+lifelink,189,keyword_ability,2.518321119253831
+flash,183,keyword_ability,2.438374417055296
+play,166,keyword_action,2.2118587608261158
+indestructible,164,keyword_ability,2.1852098600932712
+equip,159,keyword_ability,2.1185876082611594
+mill,154,keyword_action,2.051965356429047
+reach,146,keyword_ability,1.9453697534976684
+scry,141,keyword_action,1.8787475016655564
+cycling,140,keyword_ability,1.8654230512991337
+deathtouch,137,keyword_ability,1.8254497001998666
+menace,133,keyword_ability,1.7721518987341773
+double,129,keyword_action,1.7188540972684876
+hexproof,115,keyword_ability,1.5323117921385743
+protection,113,keyword_ability,1.5056628914057295
+treasure,96,keyword_action,1.279147235176549
+defender,96,keyword_ability,1.279147235176549
+attach,94,keyword_action,1.2524983344437042
+flashback,86,keyword_ability,1.1459027315123251
+regenerate,86,keyword_action,1.1459027315123251
+double strike,80,keyword_ability,1.0659560293137909
+landfall,62,ability_word,0.8261159227181878
+ward,61,keyword_ability,0.8127914723517655
+kicker,58,keyword_ability,0.7728181212524984
+crew,51,keyword_ability,0.6795469686875416
+landwalk,47,keyword_ability,0.6262491672218521
+investigate,42,keyword_action,0.5596269153897402
+surveil,39,keyword_action,0.5196535642904729
+partner,37,keyword_ability,0.49300466355762823
+fight,36,keyword_action,0.47968021319120585
+convoke,35,keyword_ability,0.4663557628247834
+shroud,33,keyword_ability,0.43970686209193866
+food,33,keyword_action,0.43970686209193866
+typecycling,31,keyword_ability,0.4130579613590939
+landcycling,30,keyword_ability,0.39973351099267157
+goad,29,keyword_action,0.3864090606262492
+morph,29,keyword_ability,0.3864090606262492
+proliferate,29,keyword_action,0.3864090606262492
+suspend,28,keyword_ability,0.3730846102598268
+fear,28,keyword_ability,0.3730846102598268
+devoid,26,keyword_ability,0.346435709526982
+prowess,24,keyword_ability,0.31978680879413723
+storm,24,keyword_ability,0.31978680879413723
+threshold,24,ability_word,0.31978680879413723
+companion,21,keyword_ability,0.2798134576948701
+evoke,20,keyword_ability,0.2664890073284477
+delirium,19,ability_word,0.25316455696202533
+changeling,19,keyword_ability,0.25316455696202533
+swampwalk,19,keyword_ability,0.25316455696202533
+manifest,19,keyword_action,0.25316455696202533
+forestwalk,18,keyword_ability,0.23984010659560293
+affinity,18,keyword_ability,0.23984010659560293
+toxic,18,keyword_ability,0.23984010659560293
+islandwalk,18,keyword_ability,0.23984010659560293
+madness,18,keyword_ability,0.23984010659560293
+mutate,18,keyword_ability,0.23984010659560293
+echo,17,keyword_ability,0.22651565622918055
+infect,17,keyword_ability,0.22651565622918055
+buyback,16,keyword_ability,0.21319120586275817
+amass,16,keyword_action,0.21319120586275817
+cascade,16,keyword_ability,0.21319120586275817
+partner with,15,keyword_ability,0.19986675549633579
+undying,15,keyword_ability,0.19986675549633579
+unearth,15,keyword_ability,0.19986675549633579
+morbid,15,ability_word,0.19986675549633579
+venture into the dungeon,14,keyword_action,0.1865423051299134
+ninjutsu,14,keyword_ability,0.1865423051299134
+hideaway,13,keyword_ability,0.173217854763491
+banding,13,keyword_ability,0.173217854763491
+foretell,13,keyword_ability,0.173217854763491
+delve,13,keyword_ability,0.173217854763491
+myriad,13,keyword_ability,0.173217854763491
+doctor's companion,12,keyword_ability,0.15989340439706862
+choose a background,12,keyword_ability,0.15989340439706862
+horsemanship,12,keyword_ability,0.15989340439706862
+cumulative upkeep,12,keyword_ability,0.15989340439706862
+channel,12,ability_word,0.15989340439706862
+exchange,12,keyword_action,0.15989340439706862
+basic landcycling,12,keyword_ability,0.15989340439706862
+raid,11,ability_word,0.14656895403064624
+saddle,11,keyword_ability,0.14656895403064624
+escape,10,keyword_ability,0.13324450366422386
+multikicker,10,keyword_ability,0.13324450366422386
+exalted,10,keyword_ability,0.13324450366422386
+mountainwalk,10,keyword_ability,0.13324450366422386
+training,10,keyword_ability,0.13324450366422386
+hexproof from,10,keyword_ability,0.13324450366422386
+domain,10,ability_word,0.13324450366422386
+splice,9,keyword_ability,0.11992005329780146
+eternalize,9,keyword_ability,0.11992005329780146
+explore,9,keyword_action,0.11992005329780146
+vote,9,keyword_action,0.11992005329780146
+metalcraft,9,ability_word,0.11992005329780146
+plot,9,keyword_action,0.11992005329780146
+exploit,9,keyword_ability,0.11992005329780146
+magecraft,9,ability_word,0.11992005329780146
+vanishing,9,keyword_ability,0.11992005329780146
+shadow,9,keyword_ability,0.11992005329780146
+populate,8,keyword_action,0.10659560293137908
+lieutenant,8,ability_word,0.10659560293137908
+improvise,8,keyword_ability,0.10659560293137908
+imprint,8,ability_word,0.10659560293137908
+annihilator,8,keyword_ability,0.10659560293137908
+transform,8,keyword_action,0.10659560293137908
+entwine,8,keyword_ability,0.10659560293137908
+overload,8,keyword_ability,0.10659560293137908
+heroic,8,ability_word,0.10659560293137908
+paradox,8,ability_word,0.10659560293137908
+bestow,8,keyword_ability,0.10659560293137908
+gift,7,keyword_ability,0.0932711525649567
+graft,7,keyword_ability,0.0932711525649567
+plainscycling,7,keyword_ability,0.0932711525649567
+warp,7,keyword_ability,0.0932711525649567
+open an attraction,7,keyword_action,0.0932711525649567
+adapt,7,keyword_action,0.0932711525649567
+miracle,7,keyword_ability,0.0932711525649567
+dredge,7,keyword_ability,0.0932711525649567
+collect evidence,7,keyword_action,0.0932711525649567
+cleave,7,keyword_ability,0.0932711525649567
+ascend,7,keyword_ability,0.0932711525649567
+persist,7,keyword_ability,0.0932711525649567
+bloodthirst,6,keyword_ability,0.07994670219853431
+bushido,6,keyword_ability,0.07994670219853431
+corrupted,6,ability_word,0.07994670219853431
+scavenge,6,keyword_ability,0.07994670219853431
+constellation,6,ability_word,0.07994670219853431
+devour,6,keyword_ability,0.07994670219853431
+skulk,6,keyword_ability,0.07994670219853431
+max speed,6,keyword_ability,0.07994670219853431
+start your engines!,6,ability_word,0.07994670219853431
+split second,6,keyword_ability,0.07994670219853431
+read ahead,6,keyword_ability,0.07994670219853431
+mentor,6,keyword_ability,0.07994670219853431
+fading,6,keyword_ability,0.07994670219853431
+support,6,keyword_action,0.07994670219853431
+extort,6,keyword_ability,0.07994670219853431
+void,6,ability_word,0.07994670219853431
+incubate,6,keyword_action,0.07994670219853431
+disguise,6,keyword_ability,0.07994670219853431
+evolve,6,keyword_ability,0.07994670219853431
+exhaust,6,keyword_ability,0.07994670219853431
+bolster,6,keyword_action,0.07994670219853431
+manifest dread,5,keyword_action,0.06662225183211193
+compleated,5,keyword_ability,0.06662225183211193
+dash,5,keyword_ability,0.06662225183211193
+detain,5,keyword_action,0.06662225183211193
+reinforce,5,keyword_ability,0.06662225183211193
+connive,5,keyword_action,0.06662225183211193
+sunburst,5,keyword_ability,0.06662225183211193
+discover,5,keyword_action,0.06662225183211193
+role token,5,keyword_action,0.06662225183211193
+soulbond,5,keyword_ability,0.06662225183211193
+wither,5,keyword_ability,0.06662225183211193
+rebound,5,keyword_ability,0.06662225183211193
+revolt,5,ability_word,0.06662225183211193
+spree,5,keyword_ability,0.06662225183211193
+encore,5,keyword_ability,0.06662225183211193
+offspring,5,keyword_ability,0.06662225183211193
+flanking,5,keyword_ability,0.06662225183211193
+megamorph,5,keyword_ability,0.06662225183211193
+emerge,5,keyword_ability,0.06662225183211193
+embalm,5,keyword_ability,0.06662225183211193
+forestcycling,5,keyword_ability,0.06662225183211193
+retrace,5,keyword_ability,0.06662225183211193
+squad,5,keyword_ability,0.06662225183211193
+station,5,keyword_ability,0.06662225183211193
+undergrowth,5,ability_word,0.06662225183211193
+rampage,5,keyword_ability,0.06662225183211193
+jump-start,5,keyword_ability,0.06662225183211193
+alliance,5,ability_word,0.06662225183211193
+surge,5,keyword_ability,0.06662225183211193
+enrage,5,ability_word,0.06662225183211193
+will of the council,5,ability_word,0.06662225183211193
+solved,5,keyword_ability,0.06662225183211193
+umbra armor,5,keyword_ability,0.06662225183211193
+celebration,5,ability_word,0.06662225183211193
+battle cry,5,keyword_ability,0.06662225183211193
+modular,5,keyword_ability,0.06662225183211193
+intimidate,4,keyword_ability,0.05329780146568954
+fabricate,4,keyword_ability,0.05329780146568954
+afflict,4,keyword_ability,0.05329780146568954
+exert,4,keyword_action,0.05329780146568954
+clash,4,keyword_action,0.05329780146568954
+soulshift,4,keyword_ability,0.05329780146568954
+outlast,4,keyword_ability,0.05329780146568954
+boast,4,keyword_ability,0.05329780146568954
+hellbent,4,ability_word,0.05329780146568954
+islandcycling,4,keyword_ability,0.05329780146568954
+bloodrush,4,ability_word,0.05329780146568954
+planeswalk,4,keyword_action,0.05329780146568954
+addendum,4,ability_word,0.05329780146568954
+decayed,4,keyword_ability,0.05329780146568954
+fateful hour,4,ability_word,0.05329780146568954
+inspired,4,ability_word,0.05329780146568954
+afterlife,3,keyword_ability,0.039973351099267154
+tempting offer,3,ability_word,0.039973351099267154
+converge,3,ability_word,0.039973351099267154
+casualty,3,keyword_ability,0.039973351099267154
+cloak,3,keyword_action,0.039973351099267154
+escalate,3,keyword_ability,0.039973351099267154
+backup,3,keyword_ability,0.039973351099267154
+transmute,3,keyword_ability,0.039973351099267154
+battalion,3,ability_word,0.039973351099267154
+impending,3,keyword_ability,0.039973351099267154
+offering,3,keyword_ability,0.039973351099267154
+will of the planeswalkers,3,ability_word,0.039973351099267154
+learn,3,keyword_action,0.039973351099267154
+unleash,3,keyword_ability,0.039973351099267154
+spectacle,3,keyword_ability,0.039973351099267154
+riot,3,keyword_ability,0.039973351099267154
+plainswalk,3,keyword_ability,0.039973351099267154
+level up,3,keyword_ability,0.039973351099267154
+time travel,3,keyword_action,0.039973351099267154
+bargain,3,keyword_ability,0.039973351099267154
+join forces,3,ability_word,0.039973351099267154
+monstrosity,3,keyword_action,0.039973351099267154
+living weapon,3,keyword_ability,0.039973351099267154
+enlist,3,keyword_ability,0.039973351099267154
+renown,3,keyword_ability,0.039973351099267154
+blitz,3,keyword_ability,0.039973351099267154
+ferocious,3,ability_word,0.039973351099267154
+eerie,2,ability_word,0.02664890073284477
+cohort,2,ability_word,0.02664890073284477
+reconfigure,2,keyword_ability,0.02664890073284477
+council's dilemma,2,ability_word,0.02664890073284477
+roll to visit your attractions,2,keyword_action,0.02664890073284477
+eminence,2,ability_word,0.02664890073284477
+pack tactics,2,ability_word,0.02664890073284477
+replicate,2,keyword_ability,0.02664890073284477
+champion,2,keyword_ability,0.02664890073284477
+for mirrodin!,2,keyword_ability,0.02664890073284477
+freerunning,2,keyword_ability,0.02664890073284477
+harmonize,2,keyword_ability,0.02664890073284477
+spell mastery,2,ability_word,0.02664890073284477
+friends forever,2,keyword_ability,0.02664890073284477
+recover,2,keyword_ability,0.02664890073284477
+melee,2,keyword_ability,0.02664890073284477
+undaunted,2,keyword_ability,0.02664890073284477
+grandeur,2,ability_word,0.02664890073284477
+swampcycling,2,keyword_ability,0.02664890073284477
+job select,2,keyword_ability,0.02664890073284477
+ripple,2,keyword_ability,0.02664890073284477
+forecast,2,keyword_ability,0.02664890073284477
+rally,2,ability_word,0.02664890073284477
+valiant,2,ability_word,0.02664890073284477
+assist,2,keyword_ability,0.02664890073284477
+meld,2,keyword_action,0.02664890073284477
+conspire,2,keyword_ability,0.02664890073284477
+mountaincycling,2,keyword_ability,0.02664890073284477
+phasing,2,keyword_ability,0.02664890073284477
+cipher,2,keyword_ability,0.02664890073284477
+sweep,2,ability_word,0.02664890073284477
+fathomless descent,1,ability_word,0.013324450366422385
+parley,1,ability_word,0.013324450366422385
+legacy,1,ability_word,0.013324450366422385
+radiance,1,ability_word,0.013324450366422385
+amplify,1,keyword_ability,0.013324450366422385
+forage,1,keyword_action,0.013324450366422385
+flurry,1,ability_word,0.013324450366422385
+behold,1,keyword_action,0.013324450366422385
+nonbasic landwalk,1,keyword_ability,0.013324450366422385
+suspect,1,keyword_action,0.013324450366422385
+slivercycling,1,keyword_ability,0.013324450366422385
+renew,1,ability_word,0.013324450366422385
+assemble,1,keyword_action,0.013324450366422385
+coven,1,ability_word,0.013324450366422385
+mobilize,1,keyword_ability,0.013324450366422385
+prowl,1,keyword_ability,0.013324450366422385
+formidable,1,ability_word,0.013324450366422385
+fortify,1,keyword_ability,0.013324450366422385
+tiered,1,keyword_ability,0.013324450366422385
+ravenous,1,keyword_ability,0.013324450366422385
+commander ninjutsu,1,keyword_ability,0.013324450366422385
+fateseal,1,keyword_action,0.013324450366422385
+awaken,1,keyword_ability,0.013324450366422385
+transfigure,1,keyword_ability,0.013324450366422385
+tribute,1,keyword_ability,0.013324450366422385
+survival,1,ability_word,0.013324450366422385
+haunt,1,keyword_ability,0.013324450366422385
+ingest,1,keyword_ability,0.013324450366422385
+dethrone,1,keyword_ability,0.013324450366422385
+provoke,1,keyword_ability,0.013324450366422385
+endure,1,keyword_action,0.013324450366422385
+prototype,1,keyword_ability,0.013324450366422385
+strive,1,ability_word,0.013324450366422385
+kinship,1,ability_word,0.013324450366422385
+disturb,1,keyword_ability,0.013324450366422385

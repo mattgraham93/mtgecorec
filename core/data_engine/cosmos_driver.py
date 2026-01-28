@@ -4,6 +4,10 @@ import sys
 import uuid
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def get_mongo_client():
     conn_str = os.environ.get('COSMOS_CONNECTION_STRING')
