@@ -289,6 +289,44 @@
         #cardVersionsModal .modal-content * {
             pointer-events: auto;
         }
+        
+        /* Phase 5: Loading Progress Modal Styling */
+        #loading-progress-modal .modal-content {
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .loading-step {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            color: #AAA;
+            transition: color 0.3s ease;
+        }
+        
+        .loading-step.complete {
+            color: #B983FF;
+        }
+        
+        .loading-step .spinner-border {
+            margin-right: 0.75rem;
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.2rem;
+            color: #B983FF;
+            display: inline-block;
+        }
+        
+        .loading-step.complete .spinner-border {
+            display: none;
+        }
+        
+        .loading-step.complete::before {
+            content: '✓';
+            margin-right: 0.75rem;
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <html>
@@ -587,6 +625,16 @@
                         </div>
                     </div>
                     
+                    <!-- Save Deck Section -->
+                    <div id="save-deck-section" style="display: none; margin-top: 2rem;">
+                        <div class="text-center">
+                            <button id="save-deck-btn" class="btn btn-lg" 
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 12px 36px; color: white; font-weight: 600;">
+                                <i class="fas fa-save me-2"></i>Save This Deck
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div id="loading-recommendations" style="display: none; text-align: center; padding: 4rem;">
                         <div class="loading-spinner" style="width: 40px; height: 40px;"></div>
                         <p style="color: #B983FF; margin-top: 1rem;">Analyzing thousands of cards to find the perfect recommendations...</p>
@@ -595,6 +643,68 @@
             </div>
         </div>
     </main>
+
+    <!-- Phase 5: Loading Progress Modal (Optimization Indicator) -->
+    <div id="loading-progress-modal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content" style="background: #2D1B4A; color: #F3F0FF; border: 1px solid rgba(185,131,255,0.3);">
+                <div class="modal-body p-4" style="text-align: center;">
+                    <h5 style="color: #B983FF; margin-bottom: 1.5rem;">
+                        <i class="fas fa-magic me-2"></i>Analyzing Cards...
+                    </h5>
+                    
+                    <!-- Progress Steps -->
+                    <div id="loading-steps" style="text-align: left; margin-bottom: 1.5rem;">
+                        <!-- Steps will be inserted here -->
+                    </div>
+                    
+                    <!-- Overall Progress Bar -->
+                    <div class="progress" style="height: 6px; background: rgba(185,131,255,0.1); border-radius: 3px;">
+                        <div id="progress-bar" class="progress-bar" style="background: #B983FF; width: 0%; transition: width 0.3s ease;"></div>
+                    </div>
+                    
+                    <small style="color: #999; margin-top: 1rem; display: block;">
+                        This usually takes 5-10 seconds...
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Deck Modal -->
+    <div class="modal fade" id="saveDeckModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background: #2D1B4A; color: #F3F0FF; border: 1px solid rgba(185,131,255,0.3);">
+                <div class="modal-header" style="border-color: rgba(185,131,255,0.3);">
+                    <h5 class="modal-title" style="color: #B983FF;"><i class="fas fa-floppy-disk me-2"></i>Save Deck</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="save-deck-name" class="form-label">Deck Name</label>
+                        <input type="text" class="form-control" id="save-deck-name" 
+                               placeholder="e.g., Meren Aristocrats"
+                               style="background: rgba(0,0,0,0.3); border-color: rgba(185,131,255,0.5); color: #F3F0FF;"
+                               maxlength="100">
+                        <small class="text-muted">Choose a memorable name for your deck</small>
+                    </div>
+                    <div id="save-deck-error" class="alert alert-danger" style="display: none;"></div>
+                    <div id="save-deck-limit-warning" class="alert alert-warning" style="display: none; background: rgba(255,193,7,0.2); border-color: #FFD700; color: #FFD700;">
+                        <strong>Free Tier Limit:</strong> You can save up to 3 decks. 
+                        <a href="/profile" style="color: #B983FF; text-decoration: underline;">Upgrade to Premium</a> for unlimited decks.
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color: rgba(185,131,255,0.3);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-save-deck"
+                            style="background: #B983FF; border-color: #B983FF;">
+                        <span id="save-deck-spinner" class="spinner-border spinner-border-sm me-2" style="display: none;"></span>
+                        Save Deck
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Card Versions Modal -->
     <div class="modal fade" id="cardVersionsModal" tabindex="-1" aria-labelledby="cardVersionsModalLabel" aria-hidden="true" 
@@ -623,8 +733,10 @@
 
     <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        let selectedCommander = null;
         let searchTimeout = null;
+        
+        // Frontend pricing cache to prevent duplicate API calls
+        const pricingCache = new Map();
 
         // Commander search functionality
         document.getElementById('commander-search-input').addEventListener('input', function(e) {
@@ -697,14 +809,82 @@
             
             // Load pricing for each commander with delays to avoid rate limits
             commanders.forEach((commander, index) => {
-                // Stagger the requests with increasing delays to avoid overwhelming the database
-                setTimeout(() => {
-                    loadCommanderPricing(commander.name, index);
-                }, index * 200); // 200ms delay between each request
+                // Check if we already have pricing cached for this commander
+                if (!pricingCache.has(commander.name)) {
+                    // Stagger the requests with increasing delays to avoid overwhelming the database
+                    setTimeout(() => {
+                        loadCommanderPricing(commander.name, index);
+                    }, index * 200); // 200ms delay between each request
+                } else {
+                    // Use cached pricing
+                    const pricingData = pricingCache.get(commander.name);
+                    displayPricingData(commander.name, pricingData, index);
+                }
             });
         }
 
         async function loadCommanderPricing(commanderName, index) {
+            try {
+                const response = await fetch(`/api/commanders/${encodeURIComponent(commanderName)}/pricing`);
+                const data = await response.json();
+                
+                // Cache the pricing data for this commander
+                pricingCache.set(commanderName, data.pricing);
+                
+                // Display the pricing
+                displayPricingData(commanderName, data.pricing, index);
+            } catch (error) {
+                console.error(`Error loading pricing for ${commanderName}:`, error);
+                const pricingElement = document.getElementById(`pricing-${index}`);
+                if (pricingElement) {
+                    pricingElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                }
+            }
+        }
+        
+        function displayPricingData(commanderName, pricingData, index) {
+            const pricingElement = document.getElementById(`pricing-${index}`);
+            if (!pricingElement) return;
+            
+            if (pricingData && typeof pricingData === 'object') {
+                const prices = [];
+                
+                // Check if this commander has multiple versions
+                const hasMultipleVersions = pricingData.total_versions && pricingData.total_versions > 1;
+                
+                // Format USD price with proper decimal formatting
+                if (pricingData.usd && !isNaN(pricingData.usd)) {
+                    const usdPrice = parseFloat(pricingData.usd).toFixed(2);
+                    if (hasMultipleVersions) {
+                        prices.push(`from $${usdPrice}`);
+                        console.log(`DEBUG Search Results: ${commanderName} showing from $${usdPrice}, total_versions: ${pricingData.total_versions}`);
+                    } else {
+                        prices.push(`$${usdPrice}`);
+                        console.log(`DEBUG Search Results: ${commanderName} showing $${usdPrice}, single version`);
+                    }
+                }
+                
+                // Format foil price 
+                if (pricingData.usd_foil && !isNaN(pricingData.usd_foil)) {
+                    const foilPrice = parseFloat(pricingData.usd_foil).toFixed(2);
+                    prices.push(`$${foilPrice} (foil)`);
+                }
+                
+                if (prices.length > 0) {
+                    let priceDisplay = prices.join(' / ');
+                    if (hasMultipleVersions && pricingData.total_versions) {
+                        priceDisplay += ` <span class="versions-count" style="color: #888; font-size: 0.8rem;">(${pricingData.total_versions} prints)</span>`;
+                    }
+                    pricingElement.innerHTML = priceDisplay;
+                } else {
+                    pricingElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+                }
+            } else {
+                pricingElement.innerHTML = '<span style="color: #888;">Price N/A</span>';
+            }
+        }
+
+        async function loadCommanderPricing_OLD(commanderName, index) {
             try {
                 const response = await fetch(`/api/commanders/${encodeURIComponent(commanderName)}/pricing`);
                 const data = await response.json();
@@ -758,7 +938,7 @@
         }
 
         function selectCommander(commanderName, commanderIndex) {
-            selectedCommander = commanderName;
+            window.selectedCommander = commanderName;
             
             // Get commander data once for the entire function
             const commanderData = commandersData[commanderIndex];
@@ -1054,21 +1234,107 @@
         }
 
         // Get recommendations
+        // Phase 5: Show progress modal during loading
+        function showProgressModal(steps) {
+            const modal = new bootstrap.Modal(document.getElementById('loading-progress-modal'), {
+                backdrop: 'static',
+                keyboard: false
+            });
+            
+            const stepsContainer = document.getElementById('loading-steps');
+            stepsContainer.innerHTML = steps.map((step, i) => `
+                <div class="loading-step" data-step="${i}">
+                    <div class="spinner-border spinner-border-sm"></div>
+                    <span>${step}</span>
+                </div>
+            `).join('');
+            
+            modal.show();
+            
+            let progressPoller = null;
+            
+            let isComplete = false;  // Flag to prevent polling after completion
+            
+            return {
+                modal: modal,
+                startPolling: () => {
+                    // Poll for progress updates every 100ms
+                    progressPoller = setInterval(async () => {
+                        if (isComplete) return;  // Stop polling if already complete
+                        
+                        try {
+                            const response = await fetch('/api/recommendations/progress');
+                            const data = await response.json();
+                            
+                            // Mark steps as complete based on current progress
+                            if (data.completed) {
+                                data.completed.forEach((completedStep, index) => {
+                                    const stepElement = document.querySelector(`.loading-step[data-step="${index}"]`);
+                                    if (stepElement && !stepElement.classList.contains('complete')) {
+                                        stepElement.classList.add('complete');
+                                        // Update progress bar width
+                                        const progress = (data.current_step / data.total_steps) * 100;
+                                        document.getElementById('progress-bar').style.width = Math.min(progress, 95) + '%';
+                                    }
+                                });
+                            }
+                        } catch (error) {
+                            // Silently fail - just continue polling
+                        }
+                    }, 100);
+                },
+                stopPolling: () => {
+                    isComplete = true;  // Set flag to stop polling
+                    if (progressPoller) {
+                        clearInterval(progressPoller);
+                        progressPoller = null;
+                    }
+                },
+                markComplete: function() {
+                    // Mark ALL steps as complete when the actual operation finishes
+                    document.querySelectorAll('.loading-step').forEach(step => {
+                        step.classList.add('complete');
+                    });
+                    document.getElementById('progress-bar').style.width = '100%';
+                    this.stopPolling();
+                },
+                complete: function() {
+                    // Mark all steps as complete and hide modal
+                    this.markComplete();
+                    setTimeout(() => modal.hide(), 500);
+                }
+            };
+        }
+        
         document.getElementById('get-recommendations-btn').addEventListener('click', async function() {
-            if (!selectedCommander) return;
+            if (!window.selectedCommander) return;
             
             const budget = document.getElementById('budget-select').value;
             const powerLevel = document.getElementById('power-select').value;
             const preferredMechanics = document.getElementById('preferred-mechanics').value.trim();
             
-            // Show loading
-            document.getElementById('loading-recommendations').style.display = 'block';
+            // Show loading progress with real step tracking
+            const progressSteps = [
+                'Loading commander data...',
+                'Fetching card database...',
+                'Running recommendation engine...',
+                'Querying AI for card suggestions...',
+                'Matching AI results with database...',
+                'Scoring cards & calculating confidence...',
+                'Finalizing recommendations...'
+            ];
+            
+            const progress = showProgressModal(progressSteps);
+            progress.startPolling();  // Start polling for progress updates
+            
+            // Hide old loading indicator
+            document.getElementById('loading-recommendations').style.display = 'none';
             document.getElementById('recommendations-panel').style.display = 'none';
             
             try {
                 // Get main recommendations
                 const params = new URLSearchParams({
-                    commander_name: selectedCommander,
+                    commander_name: window.selectedCommander,
                     power_level: powerLevel
                 });
                 
@@ -1080,7 +1346,7 @@
                     params.append('preferred_mechanics', preferredMechanics);
                 }
                 
-                const response = await fetch(`/api/commanders/${encodeURIComponent(selectedCommander)}/recommendations?${params}`);
+                const response = await fetch(`/api/commanders/${encodeURIComponent(window.selectedCommander)}/recommendations?${params}`);
                 const data = await response.json();
                 
                 if (data.error) {
@@ -1088,10 +1354,11 @@
                 }
                 
                 displayRecommendations(data);
+                document.getElementById('recommendations-panel').style.display = 'block';
                 
                 // Try to get AI analysis
                 try {
-                    const aiResponse = await fetch(`/api/commanders/${encodeURIComponent(selectedCommander)}/ai-analysis?commander_name=${encodeURIComponent(selectedCommander)}`);
+                    const aiResponse = await fetch(`/api/commanders/${encodeURIComponent(window.selectedCommander)}/ai-analysis?commander_name=${encodeURIComponent(window.selectedCommander)}`);
                     const aiData = await aiResponse.json();
                     
                     if (aiData.success) {
@@ -1105,13 +1372,25 @@
                 console.error('Error getting recommendations:', error);
                 alert('Error getting recommendations: ' + error.message);
             } finally {
-                document.getElementById('loading-recommendations').style.display = 'none';
+                progress.complete();
             }
         });
 
         function displayRecommendations(data) {
+            // DEBUG: Log first recommendation to see structure
+            console.log('=== RECOMMENDATIONS API RESPONSE ===');
+            console.log('Total recommendations:', data.recommendations.length);
+            if (data.recommendations.length > 0) {
+                console.log('First recommendation object:', JSON.stringify(data.recommendations[0], null, 2));
+                console.log('First rec - has scryfall_id?:', data.recommendations[0].scryfall_id);
+                console.log('First rec - has id?:', data.recommendations[0].id);
+            }
+            
             // Show recommendations panel
             document.getElementById('recommendations-panel').style.display = 'block';
+            
+            // Show save deck button
+            showSaveDeckButton();
             
             // Update summary
             document.getElementById('deck-strategy').textContent = data.strategy || 'Strategy analysis in progress...';
@@ -1156,6 +1435,7 @@
                 
                 return `
                     <div class="recommendation-card ${hasMultipleVersions ? 'clickable-card' : ''}" 
+                         data-scryfall-id="${rec.scryfall_id || rec.id || ''}"
                          style="${rec.ai_suggested ? 'border: 2px solid rgba(78,205,196,0.4); box-shadow: 0 0 15px rgba(78,205,196,0.2);' : ''} ${hasMultipleVersions ? 'cursor: pointer;' : ''}"
                          ${hasMultipleVersions ? `onclick="showCardVersions('${rec.name.replace(/'/g, "\\'")}', ${JSON.stringify(rec.all_versions).replace(/"/g, '&quot;')})"` : ''}>
                         <div class="d-flex align-items-start">
@@ -1534,7 +1814,7 @@
         }
 
         async function generateAnalysisSummary() {
-            if (!selectedCommander) return;
+            if (!window.selectedCommander) return;
             
             // Show loading state
             document.getElementById('analysis-summary').style.display = 'block';
@@ -1551,13 +1831,13 @@
                 const aiContent = document.getElementById('ai-analysis-content').textContent;
                 
                 // Generate summary via new API endpoint
-                const response = await fetch(`/api/commanders/${encodeURIComponent(selectedCommander)}/analysis-summary`, {
+                const response = await fetch(`/api/commanders/${encodeURIComponent(window.selectedCommander)}/analysis-summary`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        commander_name: selectedCommander,
+                        commander_name: window.selectedCommander,
                         existing_analysis: aiContent,
                         recommendations_data: {
                             // Include key metrics for summary
@@ -1608,7 +1888,7 @@
 
         // Export functions
         function exportToScryfall() {
-            if (!selectedCommander) return;
+            if (!window.selectedCommander) return;
             
             // Get current recommendations from the main deck container
             const recommendationCards = document.querySelectorAll('#main-deck-recommendations .recommendation-card');
@@ -1618,9 +1898,9 @@
             }
             
             // Build deck list in Scryfall format
-            let deckList = `# ${selectedCommander} - AI Enhanced Commander Deck\n`;
+            let deckList = `# ${window.selectedCommander} - AI Enhanced Commander Deck\n`;
             deckList += `# Generated by MTG EcoRec on ${new Date().toLocaleDateString()}\n\n`;
-            deckList += `1 ${selectedCommander} *CMDR*\n\n`;
+            deckList += `1 ${window.selectedCommander} *CMDR*\n\n`;
             
             // Add main deck cards
             recommendationCards.forEach((card, index) => {
@@ -1633,7 +1913,7 @@
             deckList += `\n# Basic Lands (adjust quantities based on your commander's colors)\n`;
             
             // Try to get commander colors from the selected commander data
-            const commanderData = commandersData.find(c => c.name === selectedCommander);
+            const commanderData = commandersData.find(c => c.name === window.selectedCommander);
             if (commanderData && commanderData.colors) {
                 const colorToLand = { 'W': 'Plains', 'U': 'Island', 'B': 'Swamp', 'R': 'Mountain', 'G': 'Forest' };
                 const commanderColors = commanderData.colors;
@@ -1654,7 +1934,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${selectedCommander.replace(/[^a-zA-Z0-9]/g, '_')}_deck.txt`;
+            a.download = `${window.selectedCommander.replace(/[^a-zA-Z0-9]/g, '_')}_deck.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1669,7 +1949,7 @@
         }
 
         function exportToText() {
-            if (!selectedCommander) return;
+            if (!window.selectedCommander) return;
             
             // Get current recommendations from the main deck container
             const recommendationCards = document.querySelectorAll('#main-deck-recommendations .recommendation-card');
@@ -1679,11 +1959,11 @@
             }
             
             // Build simple text list
-            let textList = `${selectedCommander} - Commander Deck Recommendations\n`;
+            let textList = `${window.selectedCommander} - Commander Deck Recommendations\n`;
             textList += `Generated: ${new Date().toLocaleString()}\n`;
             textList += `=`.repeat(50) + '\n\n';
             
-            textList += `COMMANDER:\n${selectedCommander}\n\n`;
+            textList += `COMMANDER:\n${window.selectedCommander}\n\n`;
             
             // Separate AI and regular recommendations
             const aiRecommendations = [];
@@ -1738,7 +2018,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${selectedCommander.replace(/[^a-zA-Z0-9]/g, '_')}_recommendations.txt`;
+            a.download = `${window.selectedCommander.replace(/[^a-zA-Z0-9]/g, '_')}_recommendations.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1755,6 +2035,9 @@
         // Global variables for printing navigation
         let currentPrintings = [];
         let currentPrintingIndex = 0;
+        
+        // Make selectedCommander available globally for save function
+        window.selectedCommander = null;
         
         // Load pricing for printings
         async function loadPrintingsPricing(printings) {
@@ -1836,6 +2119,359 @@
             document.getElementById('commander-image-container').style.display = 'none';
             document.getElementById('recommendation-filters').style.display = 'none';
             document.getElementById('recommendation-button-row').style.display = 'none';
+            
+            // Check if loading a saved deck
+            const urlParams = new URLSearchParams(window.location.search);
+            const deckIdToLoad = urlParams.get('load');
+            if (deckIdToLoad) {
+                loadSavedDeck(deckIdToLoad);
+            }
+        });
+        
+        // ===================================
+        // DECK LOADING FUNCTIONALITY
+        // ===================================
+        
+        async function loadSavedDeck(deckId) {
+            try {
+                console.log('Loading saved deck:', deckId);
+                
+                // Fetch the deck from the API
+                const response = await fetch(`/api/decks/${deckId}`);
+                if (!response.ok) {
+                    console.error('Failed to load deck:', response.status);
+                    const errorData = await response.json();
+                    alert('Failed to load deck: ' + (errorData.error || 'Unknown error'));
+                    return;
+                }
+                
+                const deck = await response.json();
+                console.log('Deck loaded:', deck);
+                
+                if (!deck || !deck.commander || !deck.cards) {
+                    alert('Deck not found or invalid format.');
+                    return;
+                }
+                
+                const commanderName = deck.commander.name;
+                
+                // Set the commander in the global variable
+                window.selectedCommander = commanderName;
+                
+                // Auto-search and select the commander
+                document.getElementById('commander-search-input').value = commanderName;
+                const searchInput = document.getElementById('commander-search-input');
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Wait for search results
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Click the first result
+                const commanderCards = document.querySelectorAll('.commander-card');
+                if (commanderCards.length > 0) {
+                    commanderCards[0].click();
+                }
+                
+                // Now populate the recommendations section with the saved cards
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Build the recommendations display with the saved cards
+                const mainDeckDiv = document.getElementById('main-deck-recommendations');
+                if (mainDeckDiv) {
+                    // Create 3-column structure
+                    const columns = [[], [], []];
+                    deck.cards.forEach((card, index) => {
+                        columns[index % 3].push(card);
+                    });
+                    
+                    mainDeckDiv.innerHTML = `
+                        <div class="row">
+                            ${columns.map(column => `
+                                <div class="col-md-4">
+                                    ${column.map(card => `
+                                        <div class="recommendation-card" 
+                                             data-scryfall-id="${card.scryfall_id || ''}"
+                                             style="border: 1px solid rgba(185, 131, 255, 0.3); background: rgba(45, 27, 74, 0.4); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                                            <div class="d-flex align-items-start">
+                                                <div class="card-image-container me-3" style="position: relative; width: 80px; height: 112px; flex-shrink: 0;">
+                                                    <div class="no-image-placeholder" 
+                                                         style="width: 80px; height: 112px; border-radius: 8px; background: rgba(185,131,255,0.1); display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(185,131,255,0.3);">
+                                                        <div style="text-align: center; color: #888;">
+                                                            <div style="font-size: 14px; margin-bottom: 4px;">📂</div>
+                                                            <div style="font-size: 10px; font-weight: bold;">SAVED</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                <strong style="color: #F3F0FF; font-size: 1.1rem;">${card.name}</strong>
+                                                            </div>
+                                                            <div class="card-badges mb-2">
+                                                                <span class="category-badge">${card.category || 'Deck Card'}</span>
+                                                                <span class="badge" style="background: rgba(185,131,255,0.2); color: #B983FF; font-size: 0.75rem; margin-left: 4px;">Saved</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div style="font-size: 0.85rem; color: #888; margin-top: 4px;">
+                                                        <em>Loaded from: ${deck.deck_name}</em>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                // Show the recommendations panel
+                document.getElementById('recommendations-panel').style.display = 'block';
+                document.getElementById('save-deck-section').style.display = 'block';
+                
+                // Ensure the main deck tab is active and visible
+                const mainDeckTab = document.getElementById('main-deck-tab');
+                const mainDeckPane = document.getElementById('main-deck');
+                if (mainDeckTab && mainDeckPane) {
+                    // Activate the main deck tab
+                    mainDeckTab.classList.add('active');
+                    mainDeckPane.classList.add('show', 'active');
+                    
+                    // Deactivate other tabs
+                    document.getElementById('mana-base-tab')?.classList.remove('active');
+                    document.getElementById('mana-base')?.classList.remove('show', 'active');
+                }
+                
+                // Update the deck summary
+                document.getElementById('deck-strategy').textContent = `Loaded: ${deck.deck_name}`;
+                document.getElementById('power-level').textContent = `${deck.cards.length} cards`;
+                document.getElementById('total-cost').textContent = '';
+                
+                console.log('Deck fully loaded with', deck.cards.length, 'cards');
+                
+            } catch (error) {
+                console.error('Error loading saved deck:', error);
+                alert('Error loading deck: ' + error.message);
+            }
+        }
+        
+        // ===================================
+        // DECK PERSISTENCE FUNCTIONALITY
+        // ===================================
+        
+        // Show save button when recommendations are loaded
+        function showSaveDeckButton() {
+            document.getElementById('save-deck-section').style.display = 'block';
+        }
+        
+        // Save deck button click handler
+        document.getElementById('save-deck-btn').addEventListener('click', function() {
+            // Pre-fill deck name with commander name
+            const deckNameInput = document.getElementById('save-deck-name');
+            if (window.selectedCommander) {
+                deckNameInput.value = `${window.selectedCommander} Deck`;
+            }
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('saveDeckModal'));
+            modal.show();
+        });
+        
+        // Confirm save deck
+        document.getElementById('confirm-save-deck').addEventListener('click', async function() {
+            const deckName = document.getElementById('save-deck-name').value.trim();
+            const errorDiv = document.getElementById('save-deck-error');
+            const spinner = document.getElementById('save-deck-spinner');
+            
+            console.log('=== SAVE DECK: Starting ===');
+            
+            // Validate deck name
+            if (!deckName) {
+                errorDiv.textContent = 'Please enter a deck name';
+                errorDiv.style.display = 'block';
+                console.log('Error: No deck name provided');
+                return;
+            }
+            
+            // Validate commander selected
+            if (!window.selectedCommander) {
+                errorDiv.textContent = 'No commander selected';
+                errorDiv.style.display = 'block';
+                console.log('Error: No commander selected');
+                return;
+            }
+            
+            console.log('Deck name:', deckName);
+            console.log('Selected commander:', window.selectedCommander);
+            
+            // Get recommendation cards from DOM
+            const mainDeckDiv = document.getElementById('main-deck-recommendations');
+            console.log('Main deck div found:', mainDeckDiv !== null);
+            
+            const recommendationCards = document.querySelectorAll('#main-deck-recommendations .recommendation-card');
+            console.log('Found recommendation cards:', recommendationCards.length);
+            
+            if (recommendationCards.length === 0) {
+                errorDiv.textContent = 'No cards to save. Get recommendations first.';
+                errorDiv.style.display = 'block';
+                console.log('Error: No recommendation cards found');
+                return;
+            }
+            
+            // Build cards array from recommendation cards
+            const cards = [];
+            recommendationCards.forEach((card, index) => {
+                const nameElement = card.querySelector('strong');
+                const categoryBadge = card.querySelector('.category-badge');
+                const scryfallIdAttr = card.getAttribute('data-scryfall-id');
+                
+                const cardName = nameElement ? nameElement.textContent.trim() : '';
+                const category = categoryBadge ? categoryBadge.textContent.trim() : '';
+                
+                console.log(`Card ${index}:`, {
+                    nameElement: nameElement ? 'found' : 'NOT FOUND',
+                    cardName,
+                    categoryBadge: categoryBadge ? 'found' : 'NOT FOUND', 
+                    category,
+                    scryfallIdAttr
+                });
+                
+                if (nameElement && scryfallIdAttr) {
+                    cards.push({
+                        scryfall_id: scryfallIdAttr,
+                        name: cardName,
+                        quantity: 1,
+                        category: category
+                    });
+                } else {
+                    console.warn(`Card ${index}: Missing data - name: ${!!nameElement}, scryfall_id: ${!!scryfallIdAttr}`);
+                }
+            });
+            
+            console.log('Total cards extracted:', cards.length);
+            console.log('First 3 cards:', cards.slice(0, 3));
+            
+            if (cards.length === 0) {
+                errorDiv.textContent = 'Failed to extract card data. Please reload and try again.';
+                errorDiv.style.display = 'block';
+                console.log('Error: No cards successfully extracted');
+                return;
+            }
+            
+            // Get commander data - look for it in the window variable or fetch fresh
+            const commanderName = window.selectedCommander;
+            let commanderData = null;
+            
+            // Try to find commander in commandersData if it exists
+            if (window.commandersData && Array.isArray(window.commandersData)) {
+                commanderData = window.commandersData.find(c => c.name === commanderName);
+                console.log('Commander found in commandersData:', commanderData !== null);
+            }
+            
+            // If not found, try to fetch the commander data from search
+            if (!commanderData) {
+                console.log('Fetching commander data from API...');
+                try {
+                    const response = await fetch(`/api/commanders/search?q=${encodeURIComponent(commanderName)}`);
+                    if (response.ok) {
+                        const results = await response.json();
+                        if (results.commanders && results.commanders.length > 0) {
+                            commanderData = results.commanders[0];
+                            console.log('Commander fetched from API:', commanderData.name);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error fetching commander data:', e);
+                }
+            }
+            
+            if (!commanderData) {
+                errorDiv.textContent = 'Commander data not found. Please try again.';
+                errorDiv.style.display = 'block';
+                console.log('Error: Commander data not found');
+                return;
+            }
+            
+            console.log('Commander data:', {
+                name: commanderData.name,
+                scryfall_id: commanderData.scryfall_id,
+                id: commanderData.id
+            });
+            
+            // Show loading
+            spinner.style.display = 'inline-block';
+            errorDiv.style.display = 'none';
+            this.disabled = true;
+            
+            try {
+                // Prepare deck data
+                const deckData = {
+                    deck_name: deckName,
+                    commander: {
+                        scryfall_id: commanderData.scryfall_id || commanderData.id,
+                        name: commanderData.name
+                    },
+                    cards: cards
+                };
+                
+                // Debug log
+                console.log('=== SENDING TO API ===');
+                console.log('Deck name:', deckData.deck_name);
+                console.log('Commander:', deckData.commander);
+                console.log('Number of cards:', deckData.cards.length);
+                console.log('Cards array:', deckData.cards);
+                console.log('Full deck data:', JSON.stringify(deckData, null, 2));
+                
+                // Send to backend
+                const response = await fetch('/api/decks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(deckData)
+                });
+                
+                const result = await response.json();
+                
+                console.log('API Response status:', response.status);
+                console.log('API Response:', result);
+                
+                if (response.ok && result.success) {
+                    // Success!
+                    console.log('✓ Deck saved successfully!');
+                    bootstrap.Modal.getInstance(document.getElementById('saveDeckModal')).hide();
+                    
+                    // Show success message
+                    alert(`✓ Deck "${deckName}" saved successfully with ${cards.length} cards!`);
+                    
+                    // Reset form
+                    document.getElementById('save-deck-name').value = '';
+                    
+                } else if (response.status === 403) {
+                    // Deck limit reached
+                    console.log('Deck limit reached');
+                    errorDiv.innerHTML = `<strong>Deck Limit Reached:</strong> ${result.message}`;
+                    errorDiv.style.display = 'block';
+                    
+                } else {
+                    // Other error
+                    console.log('Error response from API:', result);
+                    errorDiv.textContent = result.message || 'Failed to save deck';
+                    errorDiv.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error saving deck:', error);
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+                
+            } finally {
+                spinner.style.display = 'none';
+                this.disabled = false;
+            }
         });
     </script>
 </body>

@@ -2,6 +2,9 @@ import os
 from dotenv import load_dotenv
 from flask import (Flask, redirect, render_template, request,
                    send_from_directory, url_for, jsonify, session, flash)
+from functools import lru_cache
+from datetime import datetime, timedelta
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -25,6 +28,28 @@ app.config.update(
 
 # Initialize user manager
 user_manager = UserManager()
+
+# Suppress werkzeug logging for internal polling endpoints
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
+# Pricing cache: {commander_name: (timestamp, data)}
+_pricing_cache = {}
+_PRICING_CACHE_TTL = 300  # 5 minutes cache TTL
+
+def get_cached_pricing(commander_name):
+    """Get pricing from cache if available and not expired."""
+    if commander_name in _pricing_cache:
+        timestamp, data = _pricing_cache[commander_name]
+        if datetime.now() - timestamp < timedelta(seconds=_PRICING_CACHE_TTL):
+            return data
+        else:
+            # Cache expired, remove it
+            del _pricing_cache[commander_name]
+    return None
+
+def set_cached_pricing(commander_name, data):
+    """Store pricing in cache with timestamp."""
+    _pricing_cache[commander_name] = (datetime.now(), data)
 
 # Pricing helper functions
 def get_latest_pricing_data(card_name):
@@ -842,6 +867,7 @@ def api_search_commanders():
          {'$project': {
             '_id': 0,
             'name': '$_id',
+            'scryfall_id': '$commander.id',
             'mana_cost': '$commander.mana_cost',
             'colors': '$commander.colors',
             'type_line': '$commander.type_line',
@@ -872,9 +898,19 @@ def api_search_commanders():
 
 @app.route('/api/commanders/<commander_name>/pricing')
 def api_get_commander_pricing(commander_name):
-   """Get pricing data for a specific commander."""
+   """Get pricing data for a specific commander (cached to reduce DB load)."""
    try:
+      # Check cache first
+      cached_data = get_cached_pricing(commander_name)
+      if cached_data is not None:
+         return jsonify({'pricing': cached_data})
+      
+      # Not in cache, get from database
       pricing_data = get_all_versions_pricing_data(commander_name)
+      
+      # Store in cache for future requests
+      set_cached_pricing(commander_name, pricing_data)
+      
       return jsonify({'pricing': pricing_data})
    except Exception as e:
       print(f'Error getting pricing for {commander_name}: {e}')
@@ -957,14 +993,14 @@ def api_get_commander_printings(commander_name):
             for printing in printings:
                if 'id' in printing and printing['id'] in pricing_lookup:
                   printing['database_price'] = pricing_lookup[printing['id']]
-                  print(f"DEBUG: Added database price ${pricing_lookup[printing['id']]['usd']:.2f} for {printing.get('set_name', 'Unknown')} (ID: {printing['id']})")
                else:
-                  print(f"DEBUG: No database price found for {printing.get('set_name', 'Unknown')} (ID: {printing.get('id', 'No ID')}), using Scryfall fallback")
+                  pass  # Use Scryfall fallback
+
          else:
-            print("DEBUG: No scryfall_ids found for pricing lookup")
+            pass  # No scryfall_ids found
       except Exception as pricing_error:
-         print(f"WARNING: Could not load pricing data due to rate limiting or error: {pricing_error}")
          # Continue without pricing data - use Scryfall fallback prices
+         pass
       
       # Get the primary version (most recent or best image)
       primary_version = None
@@ -1035,6 +1071,7 @@ def api_get_commander_recommendations(commander_name):
          },
          'recommendations': [{
             'name': rec.card_name,
+            'scryfall_id': rec.card_data.get('id', ''),  # Scryfall uses 'id' field, not 'scryfall_id'
             'confidence': rec.confidence_score,
             'synergy_score': rec.synergy_score,
             'category': rec.category,
@@ -1047,7 +1084,7 @@ def api_get_commander_recommendations(commander_name):
                'collector_number': rec.card_data.get('collector_number', ''),
                'rarity': rec.card_data.get('rarity', 'common'),
                'image_uris': rec.card_data.get('image_uris', {}),
-               'scryfall_id': rec.card_data.get('scryfall_id', ''),
+               'scryfall_id': rec.card_data.get('id', ''),  # Scryfall uses 'id' field
                'price': rec.card_data.get('price', 0)
             },
             'all_versions': [{
@@ -1056,13 +1093,14 @@ def api_get_commander_recommendations(commander_name):
                'collector_number': v.get('collector_number', ''),
                'rarity': v.get('rarity', 'common'),
                'image_uris': v.get('image_uris', {}),
-               'scryfall_id': v.get('scryfall_id', ''),
+               'scryfall_id': v.get('id', ''),  # Scryfall uses 'id' field
                'price': v.get('price', 0),
                'released_at': v.get('released_at', '')
             } for v in (rec.all_versions or [rec.card_data])[:10]]  # Limit to 10 versions
          } for rec in recommendations.recommendations[:50]],  # Top 50
          'mana_base': [{
             'name': rec.card_name,
+            'scryfall_id': rec.card_data.get('id', ''),  # Scryfall uses 'id' field
             'category': rec.category,
             'estimated_price': rec.estimated_price,
             'primary_version': {
@@ -1071,7 +1109,7 @@ def api_get_commander_recommendations(commander_name):
                'collector_number': rec.card_data.get('collector_number', ''),
                'rarity': rec.card_data.get('rarity', 'common'),
                'image_uris': rec.card_data.get('image_uris', {}),
-               'scryfall_id': rec.card_data.get('scryfall_id', ''),
+               'scryfall_id': rec.card_data.get('id', ''),  # Scryfall uses 'id' field
                'price': rec.card_data.get('price', 0)
             },
             'all_versions': [{
@@ -1080,7 +1118,7 @@ def api_get_commander_recommendations(commander_name):
                'collector_number': v.get('collector_number', ''),
                'rarity': v.get('rarity', 'common'),
                'image_uris': v.get('image_uris', {}),
-               'scryfall_id': v.get('scryfall_id', ''),
+               'scryfall_id': v.get('id', ''),  # Scryfall uses 'id' field
                'price': v.get('price', 0),
                'released_at': v.get('released_at', '')
             } for v in (rec.all_versions or [rec.card_data])[:10]]  # Limit to 10 versions
@@ -1096,6 +1134,17 @@ def api_get_commander_recommendations(commander_name):
       print(f'Error generating recommendations: {e}')
       import traceback
       traceback.print_exc()
+      return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recommendations/progress')
+def api_get_recommendation_progress():
+   """Get current progress of recommendation generation."""
+   try:
+      from core.data_engine.commander_recommender import get_recommendation_progress
+      progress = get_recommendation_progress()
+      return jsonify(progress.get_current_step())
+   except Exception as e:
+      print(f'Error getting progress: {e}')
       return jsonify({'error': str(e)}), 500
 
 @app.route('/api/commanders/<commander_name>/ai-analysis')
@@ -1199,6 +1248,213 @@ def api_generate_analysis_summary(commander_name):
       print(f'Error generating analysis summary: {e}')
       return jsonify({'error': str(e)}), 500
 
+
+# ===================================
+# DECK MANAGEMENT API ENDPOINTS
+# ===================================
+
+@app.route('/api/decks', methods=['POST'])
+@login_required
+def create_deck():
+    """Create a new deck."""
+    try:
+        user_id = session.get('user_id')
+        data = request.json
+        
+        # Validate input
+        if not data.get('deck_name'):
+            return jsonify({'error': 'Validation error', 'message': 'Deck name is required'}), 400
+        
+        if not data.get('commander') or not data['commander'].get('scryfall_id'):
+            return jsonify({'error': 'Validation error', 'message': 'Commander is required'}), 400
+        
+        # NEW: Validate cards array is not empty
+        cards = data.get('cards', [])
+        if not cards or len(cards) == 0:
+            print(f'[WARNING] Deck save attempt with empty cards array')
+            print(f'  Deck name: {data.get("deck_name")}')
+            print(f'  Commander: {data.get("commander", {}).get("name")}')
+            print(f'  Cards: {cards}')
+            return jsonify({
+                'error': 'Validation error', 
+                'message': 'Deck must have at least one card. Please get recommendations first.'
+            }), 400
+        
+        print(f'[DEBUG] Creating deck: {data.get("deck_name")}')
+        print(f'  Commander: {data["commander"]["name"]}')
+        print(f'  Cards count: {len(cards)}')
+        print(f'  User: {user_id}')
+        
+        # Check deck limit
+        user_doc = user_manager.get_user_doc_by_id(user_id)
+        if not user_doc:
+            return jsonify({'error': 'User not found'}), 404
+        
+        subscription_tier = user_doc.get('subscription_tier', 'free')
+        deck_count = user_doc.get('deck_count', 0)
+        
+        # Enforce free tier limit
+        if subscription_tier == 'free' and deck_count >= 3:
+            return jsonify({
+                'error': 'Deck limit reached',
+                'message': 'Free tier allows 3 decks maximum. Delete an old deck or upgrade to Premium.',
+                'deck_count': deck_count,
+                'deck_limit': 3,
+                'subscription_tier': subscription_tier
+            }), 403
+        
+        # Create deck
+        result = cosmos_driver.create_deck(user_id, data)
+        
+        if result['success']:
+            return jsonify(result), 201
+        else:
+            return jsonify({'error': 'Server error', 'message': result['message']}), 500
+            
+    except Exception as e:
+        print(f'Error creating deck: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Server error', 'message': 'Failed to save deck'}), 500
+
+
+@app.route('/api/decks', methods=['GET'])
+@login_required
+def get_user_decks():
+    """Get all decks for current user."""
+    try:
+        user_id = session.get('user_id')
+        user_doc = user_manager.get_user_doc_by_id(user_id)
+        
+        decks = cosmos_driver.get_user_decks(user_id)
+        
+        return jsonify({
+            'decks': decks,
+            'total_count': len(decks),
+            'deck_limit': 3 if user_doc.get('subscription_tier') == 'free' else 999,
+            'subscription_tier': user_doc.get('subscription_tier', 'free')
+        })
+        
+    except Exception as e:
+        print(f'Error fetching decks: {e}')
+        return jsonify({'error': 'Server error', 'message': 'Failed to retrieve decks'}), 500
+
+
+@app.route('/api/decks/<deck_id>', methods=['GET'])
+def get_deck(deck_id):
+    """Get a single deck by ID."""
+    try:
+        deck = cosmos_driver.get_deck_by_id(deck_id, populate_cards=True)
+        
+        if not deck:
+            return jsonify({'error': 'Deck not found'}), 404
+        
+        # Check if deck is private and user is not owner
+        if not deck.get('is_public', False):
+            if 'user_id' not in session or session['user_id'] != deck['user_id']:
+                return jsonify({'error': 'Access denied', 'message': 'This deck is private'}), 403
+        
+        return jsonify(deck)
+        
+    except Exception as e:
+        print(f'Error fetching deck: {e}')
+        return jsonify({'error': 'Server error', 'message': 'Failed to retrieve deck'}), 500
+
+
+@app.route('/api/decks/<deck_id>', methods=['PUT'])
+@login_required
+def update_deck(deck_id):
+    """Update a deck."""
+    try:
+        user_id = session.get('user_id')
+        updates = request.json
+        
+        result = cosmos_driver.update_deck(deck_id, user_id, updates)
+        
+        if result['success']:
+            return jsonify(result)
+        elif 'not found' in result['message'].lower():
+            return jsonify({'error': 'Deck not found'}), 404
+        elif 'access denied' in result['message'].lower():
+            return jsonify({'error': 'Access denied', 'message': 'You can only edit your own decks'}), 403
+        else:
+            return jsonify({'error': 'Server error', 'message': result['message']}), 500
+            
+    except Exception as e:
+        print(f'Error updating deck: {e}')
+        return jsonify({'error': 'Server error', 'message': 'Failed to update deck'}), 500
+
+
+@app.route('/api/decks/<deck_id>', methods=['DELETE'])
+@login_required
+def delete_deck(deck_id):
+    """Delete a deck."""
+    try:
+        user_id = session.get('user_id')
+        
+        result = cosmos_driver.delete_deck(deck_id, user_id)
+        
+        if result['success']:
+            return jsonify(result)
+        elif 'not found' in result['message'].lower():
+            return jsonify({'error': 'Deck not found'}), 404
+        elif 'access denied' in result['message'].lower():
+            return jsonify({'error': 'Access denied', 'message': 'You can only delete your own decks'}), 403
+        else:
+            return jsonify({'error': 'Server error', 'message': result['message']}), 500
+            
+    except Exception as e:
+        print(f'Error deleting deck: {e}')
+        return jsonify({'error': 'Server error', 'message': 'Failed to delete deck'}), 500
+
+
+@app.route('/my-decks')
+@login_required
+def my_decks():
+    """User's saved decks page."""
+    return render_template('my_decks.html')
+
+@app.route('/deck/<deck_id>')
+def view_deck(deck_id):
+    """View a saved deck with card type groupings."""
+    try:
+        print(f'[DEBUG] view_deck called with deck_id: {deck_id}')
+        
+        # Fetch deck with populated card data
+        deck = cosmos_driver.get_deck_by_id(deck_id, populate_cards=True)
+        print(f'[DEBUG] get_deck_by_id returned: {deck is not None}')
+        
+        if not deck:
+            print(f'[DEBUG] Deck not found, redirecting to my_decks')
+            flash('Deck not found', 'error')
+            return redirect(url_for('my_decks'))
+        
+        # Get user info
+        user_id = session.get('user_id')
+        deck_user_id = deck.get('user_id')
+        is_public = deck.get('is_public', False)
+        is_owner = user_id and user_id == deck_user_id
+        
+        print(f'[DEBUG] is_public: {is_public}, user_id: {user_id}, deck_user_id: {deck_user_id}, is_owner: {is_owner}')
+        
+        # Allow viewing if:
+        # 1. Deck is public, OR
+        # 2. User is logged in and is the owner
+        if not is_public and not is_owner:
+            print(f'[DEBUG] Private deck and user not owner, denying access')
+            flash('This deck is private', 'error')
+            return redirect(url_for('my_decks'))
+        
+        print(f'[DEBUG] Rendering deck_viewer.html')
+        return render_template('deck_viewer.html', deck=deck, is_owner=is_owner)
+        
+    except Exception as e:
+        print(f'[ERROR] Error viewing deck: {e}')
+        import traceback
+        traceback.print_exc()
+        flash('Error loading deck', 'error')
+        return redirect(url_for('my_decks'))
+
 @app.route('/regenerate-analysis')
 def regenerate_analysis():
    try:
@@ -1213,7 +1469,18 @@ def regenerate_analysis():
       return f"Error regenerating analysis: {str(e)}", 500
 
 if __name__ == '__main__':
-   app.run()
+    # Pre-warm the card cache on startup (Phase 2 optimization)
+    # This ensures the first request doesn't block on a 2-3s database load
+    print("🔄 Pre-warming card database cache on startup...")
+    try:
+        _ = cosmos_driver.get_all_cards()
+        print("✅ Cache pre-warmed! All requests will now use fast in-memory cache.")
+    except Exception as e:
+        print(f"⚠️  Warning: Cache pre-warming failed (non-blocking): {e}")
+        print("   First request will take 2-3s, but subsequent requests will be fast.")
+    
+    # Start Flask app
+    app.run()
 
 # get price api call underway
 # finalize fields for card info

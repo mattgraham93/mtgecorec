@@ -23,6 +23,9 @@
       <!-- Logged in user links -->
       <div class="user-section">
         <small class="text-muted px-3 d-block mb-2">Welcome, {{ session.get('username', 'User') }}!</small>
+        <a class="nav-link nav-panel-link mb-2 {% if 'my-decks' in request.path %}active{% endif %}" href="/my-decks">
+          <i class="fas fa-layer-group me-2"></i>My Decks
+        </a>
         <a class="nav-link nav-panel-link mb-2 {% if 'profile' in request.path %}active{% endif %}" href="/profile">
           <i class="fas fa-user me-2"></i>Profile
         </a>

@@ -29,6 +29,8 @@ class User:
         self.ai_queries_count = 0
         self.ai_queries_limit = int(os.environ.get('AI_QUERIES_LIMIT', '50'))  # Monthly limit
         self.queries_reset_date = self._get_next_reset_date()
+        self.subscription_tier = 'free'  # free, premium, pro
+        self.deck_count = 0
     
     def _get_next_reset_date(self):
         """Calculate next monthly reset date."""
@@ -50,7 +52,9 @@ class User:
             'last_login': self.last_login,
             'ai_queries_count': self.ai_queries_count,
             'ai_queries_limit': self.ai_queries_limit,
-            'queries_reset_date': self.queries_reset_date
+            'queries_reset_date': self.queries_reset_date,
+            'subscription_tier': self.subscription_tier,
+            'deck_count': self.deck_count
         }
     
     @classmethod
@@ -68,6 +72,8 @@ class User:
         user.ai_queries_count = data.get('ai_queries_count', 0)
         user.ai_queries_limit = data.get('ai_queries_limit', 50)
         user.queries_reset_date = data.get('queries_reset_date', user._get_next_reset_date())
+        user.subscription_tier = data.get('subscription_tier', 'free')
+        user.deck_count = data.get('deck_count', 0)
         return user
 
 
@@ -195,6 +201,15 @@ class UserManager:
             if user_doc:
                 return User.from_dict(user_doc)
             return None
+        except Exception as e:
+            print(f"Error fetching user: {e}")
+            return None
+    
+    def get_user_doc_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user document (as dict) by ID."""
+        try:
+            user_doc = self.collection.find_one({'user_id': user_id}, {'_id': 0, 'password_hash': 0})
+            return user_doc
         except Exception as e:
             print(f"Error fetching user: {e}")
             return None
