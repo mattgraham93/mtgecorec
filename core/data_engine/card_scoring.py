@@ -39,7 +39,7 @@ class CardScorer:
     - Color identity match (multiplier)
     """
     
-    def __init__(self, data_path: str = '/workspaces/mtgecorec/notebooks/'):
+    def __init__(self, data_path: str = '/workspaces/mtgecorec/internal_notebooks/'):
         """
         Initialize scorer with Phase 1.5 data files.
         
@@ -289,6 +289,40 @@ class CardScorer:
             self.combo_cards[self.combo_cards['is_infinite_combo'] == True]['name'].unique()
         )
         
+        # NEW: Build mechanic synergy weights lookup (mechanic_a, mechanic_b) -> weight
+        # For Phase 1.5, mechanic_synergy_weights.csv has individual mechanic weights,
+        # not pairwise synergy. For now, use composite_weight as base synergy.
+        self.mechanic_synergy_weights = {}
+        if hasattr(self, 'mechanic_weights') and len(self.mechanic_weights) > 0:
+            # Build lookup where both orderings map to the weight
+            for _, row in self.mechanic_weights.iterrows():
+                mech_name = row.get('mechanic_name', row.get('mechanic_id', ''))
+                weight = float(row.get('composite_weight', 0.5))
+                # Normalize weight to 0-1 range (max composite_weight is ~100)
+                normalized_weight = min(weight / 100.0, 1.0)
+                # Store with normalization
+                if mech_name:
+                    mech_key = self._normalize_mechanic_name(mech_name)
+                    self.mechanic_synergy_weights[mech_key] = normalized_weight
+            logger.info(f"Built mechanic synergy weights lookup with {len(self.mechanic_synergy_weights)} mechanics")
+        
+        # NEW: Build mechanic co-occurrence lookup
+        self.mechanic_cooccurrence = {}
+        if hasattr(self, 'cooccurrence_matrix') and len(self.cooccurrence_matrix) > 0:
+            # Build nested dict: mechanic -> mechanic -> count
+            for mech_a in self.cooccurrence_matrix.index:
+                mech_a_norm = self._normalize_mechanic_name(mech_a)
+                self.mechanic_cooccurrence[mech_a_norm] = {}
+                for mech_b in self.cooccurrence_matrix.columns:
+                    mech_b_norm = self._normalize_mechanic_name(mech_b)
+                    try:
+                        count = float(self.cooccurrence_matrix.loc[mech_a, mech_b])
+                        if count > 0:
+                            self.mechanic_cooccurrence[mech_a_norm][mech_b_norm] = count
+                    except (KeyError, ValueError):
+                        pass
+            logger.info(f"Built mechanic co-occurrence lookup with {len(self.mechanic_cooccurrence)} mechanics")
+        
         logger.info("Lookup tables built")
     
     def extract_color_identity(self, card: Dict[str, Any]) -> Set[str]:
@@ -319,6 +353,219 @@ class CardScorer:
         
         # Fallback to empty set (colorless)
         return set()
+    
+    # =========================================================================
+    # MECHANIC SYNERGY HELPERS - Phase 1.5 Implementation
+    # =========================================================================
+    
+    def _normalize_mechanic_name(self, mechanic: str) -> str:
+        """Normalize mechanic name for consistent lookups.
+        
+        Converts to lowercase and strips whitespace.
+        """
+        if not mechanic:
+            return ''
+        return str(mechanic).lower().strip()
+    
+    def _extract_card_mechanics(self, card: Dict[str, Any]) -> Set[str]:
+        """Extract mechanics from card data, trying multiple sources.
+        
+        Returns set of mechanic names (normalized).
+        """
+        # Priority 1: detected_mechanics field (from CosmosDB/Phase 1.5)
+        if 'detected_mechanics' in card:
+            mechanics = card['detected_mechanics']
+            if isinstance(mechanics, str):
+                # Handle JSON array string
+                try:
+                    mechanics = json.loads(mechanics)
+                except (json.JSONDecodeError, TypeError):
+                    mechanics = []
+            if isinstance(mechanics, list) and mechanics:
+                return set(self._normalize_mechanic_name(m) for m in mechanics if m)
+        
+        # Priority 2: Look up in card_name_lookup by card name
+        card_name = card.get('name', '')
+        if card_name and card_name in self.card_name_lookup:
+            lookup_card = self.card_name_lookup[card_name]
+            if 'detected_mechanics' in lookup_card:
+                mech_data = lookup_card['detected_mechanics']
+                if isinstance(mech_data, str):
+                    try:
+                        mech_data = json.loads(mech_data)
+                    except (json.JSONDecodeError, TypeError):
+                        mech_data = []
+                if isinstance(mech_data, list) and mech_data:
+                    return set(self._normalize_mechanic_name(m) for m in mech_data if m)
+        
+        # Priority 3: Parse basic keywords from oracle_text
+        oracle_text = card.get('oracle_text', '')
+        if oracle_text:
+            return self._parse_mechanics_from_text(oracle_text)
+        
+        return set()
+    
+    def _extract_commander_mechanics(self, commander: Dict[str, Any]) -> Set[str]:
+        """Extract mechanics from commander data.
+        
+        Returns set of mechanic names (normalized).
+        """
+        # Priority 1: detected_mechanics field (from CosmosDB/Phase 1.5)
+        if 'detected_mechanics' in commander:
+            mechanics = commander['detected_mechanics']
+            if isinstance(mechanics, str):
+                try:
+                    mechanics = json.loads(mechanics)
+                except (json.JSONDecodeError, TypeError):
+                    mechanics = []
+            if isinstance(mechanics, list) and mechanics:
+                return set(self._normalize_mechanic_name(m) for m in mechanics if m)
+        
+        # Priority 2: Look up by commander name in card_name_lookup
+        commander_name = commander.get('name', '')
+        if commander_name and commander_name in self.card_name_lookup:
+            lookup_card = self.card_name_lookup[commander_name]
+            if 'detected_mechanics' in lookup_card:
+                mech_data = lookup_card['detected_mechanics']
+                if isinstance(mech_data, str):
+                    try:
+                        mech_data = json.loads(mech_data)
+                    except (json.JSONDecodeError, TypeError):
+                        mech_data = []
+                if isinstance(mech_data, list) and mech_data:
+                    return set(self._normalize_mechanic_name(m) for m in mech_data if m)
+        
+        # Priority 3: Parse from oracle_text if available
+        oracle_text = commander.get('oracle_text', '')
+        if oracle_text:
+            return self._parse_mechanics_from_text(oracle_text)
+        
+        return set()
+    
+    def _parse_mechanics_from_text(self, oracle_text: str) -> Set[str]:
+        """Parse basic mechanic keywords from oracle text.
+        
+        Recognizes common MTG keywords like Flying, Lifelink, Haste, etc.
+        """
+        if not oracle_text:
+            return set()
+        
+        text_lower = oracle_text.lower()
+        
+        # Common MTG keywords to recognize
+        keywords = [
+            'flying', 'haste', 'lifelink', 'vigilance', 'trample', 'deathtouch',
+            'hexproof', 'shroud', 'unblockable', 'evasion', 'protection',
+            'sacrifice', 'tokens', 'token', 'doubling', 'counters', 'counter',
+            'card draw', 'draw', 'ramp', 'tutoring', 'tutor', 'graveyard',
+            'recursion', 'flashback', 'delve', 'mill', 'discard',
+            'discard', 'bounce', 'removal', 'destroy', 'board wipe',
+            'burn', 'damage', 'direct damage', 'drain',
+            'enchantment', 'aura', 'equipment', 'artifact', 'creature'
+        ]
+        
+        found = set()
+        for keyword in keywords:
+            if keyword in text_lower:
+                found.add(keyword)
+        
+        return found
+    
+    def _calculate_jaccard_similarity(self, set_a: Set[str], set_b: Set[str]) -> float:
+        """Calculate Jaccard similarity coefficient between two sets.
+        
+        Returns float between 0.0 and 1.0.
+        """
+        if not set_a or not set_b:
+            return 0.0
+        
+        intersection = set_a & set_b
+        union = set_a | set_b
+        
+        if not union:
+            return 0.0
+        
+        return len(intersection) / len(union)
+    
+    def _get_synergy_weight(self, mech_a: str, mech_b: str) -> float:
+        """Look up synergy weight between two mechanics.
+        
+        Returns float between 0.0 and 1.0.
+        """
+        mech_a_norm = self._normalize_mechanic_name(mech_a)
+        mech_b_norm = self._normalize_mechanic_name(mech_b)
+        
+        # Look up in synergy weights dict (try both orderings since synergy is symmetric)
+        if mech_a_norm in self.mechanic_synergy_weights:
+            return self.mechanic_synergy_weights[mech_a_norm]
+        elif mech_b_norm in self.mechanic_synergy_weights:
+            return self.mechanic_synergy_weights[mech_b_norm]
+        
+        return 0.0
+    
+    def _calculate_weighted_synergy(self, card_mechanics: Set[str], commander_mechanics: Set[str]) -> float:
+        """Calculate average synergy weight for mechanic pairs.
+        
+        Returns float between 0.0 and 1.0.
+        """
+        if not card_mechanics or not commander_mechanics:
+            return 0.0
+        
+        synergy_scores = []
+        
+        for card_mech in card_mechanics:
+            for cmd_mech in commander_mechanics:
+                # Get synergy weight for this pair
+                weight = self._get_synergy_weight(card_mech, cmd_mech)
+                if weight > 0:
+                    synergy_scores.append(weight)
+        
+        if not synergy_scores:
+            return 0.0
+        
+        return sum(synergy_scores) / len(synergy_scores)
+    
+    def _get_cooccurrence_count(self, mech_a: str, mech_b: str) -> float:
+        """Look up co-occurrence count between two mechanics.
+        
+        Returns float count (0 if not found).
+        """
+        mech_a_norm = self._normalize_mechanic_name(mech_a)
+        mech_b_norm = self._normalize_mechanic_name(mech_b)
+        
+        # Check both orderings
+        if mech_a_norm in self.mechanic_cooccurrence:
+            if mech_b_norm in self.mechanic_cooccurrence[mech_a_norm]:
+                return self.mechanic_cooccurrence[mech_a_norm][mech_b_norm]
+        
+        if mech_b_norm in self.mechanic_cooccurrence:
+            if mech_a_norm in self.mechanic_cooccurrence[mech_b_norm]:
+                return self.mechanic_cooccurrence[mech_b_norm][mech_a_norm]
+        
+        return 0.0
+    
+    def _calculate_cooccurrence_bonus(self, card_mechanics: Set[str], commander_mechanics: Set[str]) -> float:
+        """Calculate normalized co-occurrence bonus from matrix.
+        
+        Returns float between 0.0 and 1.0.
+        """
+        if not card_mechanics or not commander_mechanics:
+            return 0.0
+        
+        cooccurrence_counts = []
+        
+        for card_mech in card_mechanics:
+            for cmd_mech in commander_mechanics:
+                count = self._get_cooccurrence_count(card_mech, cmd_mech)
+                if count > 0:
+                    cooccurrence_counts.append(count)
+        
+        if not cooccurrence_counts:
+            return 0.0
+        
+        # Normalize: observed max is ~12, normalize to 0-1 range
+        avg_count = sum(cooccurrence_counts) / len(cooccurrence_counts)
+        return min(avg_count / 12.0, 1.0)
     
     def score_card(self,
                    card: Dict[str, Any],
@@ -672,55 +919,66 @@ class CardScorer:
                                    commander: Dict[str, Any],
                                    deck: List[Dict[str, Any]]) -> float:
         """
-        Mechanic overlap with commander and deck (0-100).
+        Mechanic synergy score between card and commander (0-100).
         
-        Uses Phase 1.5 mechanic detection from database (detected_mechanics array).
-        Calculates actual overlap between card mechanics and commander mechanics.
+        Uses Phase 1.5 mechanic detection (detected_mechanics array).
+        Implements 5-step algorithm:
+        1. Extract mechanics from card and commander
+        2. Calculate Jaccard similarity (base overlap)
+        3. Calculate weighted synergy from mechanic pairs
+        4. Calculate co-occurrence bonus
+        5. Combine with weights: (base*0.4 + synergy*0.4 + cooccurrence*0.2)
+        
+        Returns score 0-100.
         """
         card_name = card.get('name', 'Unknown')
         commander_name = commander.get('name', 'Unknown')
         
-        # Extract mechanics from database (detected_mechanics array)
-        card_mechanics = set(card.get('detected_mechanics', []))
-        commander_mechanics = set(commander.get('detected_mechanics', []))
+        # STEP 1: Extract mechanics from card and commander
+        card_mechanics = self._extract_card_mechanics(card)
+        commander_mechanics = self._extract_commander_mechanics(commander)
         
-        # DIAGNOSTIC: Log extraction details
-        logger.debug(f"\n=== SYNERGY DEBUG: {card_name} vs {commander_name} ===")
+        logger.debug(f"\n=== MECHANIC SYNERGY: {card_name} vs {commander_name} ===")
         logger.debug(f"Card mechanics: {card_mechanics}")
         logger.debug(f"Commander mechanics: {commander_mechanics}")
         
-        # Calculate mechanic overlap
+        # Edge case: both have no mechanics
+        if not card_mechanics and not commander_mechanics:
+            logger.debug("No mechanics for either - neutral score 0.5 -> 50")
+            return 50.0
+        
+        # Edge case: card has no mechanics (staples like Sol Ring)
+        if not card_mechanics:
+            logger.debug("Card has no mechanics - slight penalty baseline 0.3 -> 30")
+            return 30.0
+        
+        # Edge case: commander has no mechanics
         if not commander_mechanics:
-            # No commander mechanics = neutral base score
-            base_synergy = 50.0
-        else:
-            # Calculate overlap as percentage of commander's mechanics
-            overlap = card_mechanics & commander_mechanics
-            overlap_score = (len(overlap) / len(commander_mechanics)) * 100
-            base_synergy = overlap_score
+            logger.debug("Commander has no mechanics - universal utility 0.6 -> 60")
+            return 60.0
         
-        logger.debug(f"Mechanic overlap score: {base_synergy:.1f}")
+        # STEP 2: Calculate Jaccard similarity (base overlap)
+        base_overlap = self._calculate_jaccard_similarity(card_mechanics, commander_mechanics)
+        logger.debug(f"Jaccard similarity: {base_overlap:.3f}")
         
-        # Bonus: card has ALL of commander's mechanics (perfect match)
-        if commander_mechanics and commander_mechanics.issubset(card_mechanics):
-            base_synergy = min(base_synergy + 15, 100)
-            logger.debug(f"Perfect mechanic match bonus applied: {base_synergy:.1f}")
+        # STEP 3: Calculate weighted synergy
+        weighted_synergy = self._calculate_weighted_synergy(card_mechanics, commander_mechanics)
+        logger.debug(f"Weighted synergy: {weighted_synergy:.3f}")
         
-        # Deck context: boost if synergizes with multiple deck cards
-        if deck:
-            synergistic_cards = 0
-            for deck_card in deck:
-                deck_card_mechanics = set(deck_card.get('detected_mechanics', []))
-                if card_mechanics & deck_card_mechanics:  # Any overlap
-                    synergistic_cards += 1
-            
-            if synergistic_cards > 0:
-                deck_synergy_bonus = min((synergistic_cards / max(len(deck), 1)) * 20, 20)
-                base_synergy = min(base_synergy + deck_synergy_bonus, 100)
-                logger.debug(f"Deck synergy bonus ({synergistic_cards} cards): {base_synergy:.1f}")
+        # STEP 4: Calculate co-occurrence bonus
+        cooccurrence_bonus = self._calculate_cooccurrence_bonus(card_mechanics, commander_mechanics)
+        logger.debug(f"Co-occurrence bonus: {cooccurrence_bonus:.3f}")
         
-        final_synergy = min(base_synergy, 100)
-        logger.debug(f"Final synergy: {final_synergy:.1f}")
+        # STEP 5: Combined score with weighting
+        synergy_score_normalized = (base_overlap * 0.4) + (weighted_synergy * 0.4) + (cooccurrence_bonus * 0.2)
+        
+        # Convert to 0-100 scale
+        final_synergy = synergy_score_normalized * 100.0
+        
+        # Clamp to valid range
+        final_synergy = max(0.0, min(100.0, final_synergy))
+        
+        logger.debug(f"Final mechanic synergy: {final_synergy:.1f}")
         
         return final_synergy
     
