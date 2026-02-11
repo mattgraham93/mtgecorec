@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Under Construction - MTGECOREC</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-purple.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+      .construction-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 2rem;
+      }
+      
+      .construction-content {
+        text-align: center;
+        max-width: 600px;
+      }
+      
+      .construction-icon {
+        font-size: 6rem;
+        margin-bottom: 2rem;
+        animation: bounce 2s infinite;
+      }
+      
+      @keyframes bounce {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+      
+      .construction-title {
+        color: #B983FF;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 0 20px rgba(185, 131, 255, 0.3);
+      }
+      
+      .construction-message {
+        color: #F3F0FF;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        margin-bottom: 1.5rem;
+      }
+      
+      .construction-note {
+        color: #B9A3D4;
+        font-size: 0.95rem;
+        margin-bottom: 2.5rem;
+      }
+      
+      .construction-divider {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(185, 131, 255, 0.3), transparent);
+        margin: 2rem 0;
+      }
+      
+      .btn-return {
+        background: linear-gradient(135deg, #B983FF 0%, #8B5FBF 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 2.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 2rem;
+        transition: all 0.3s ease;
+      }
+      
+      .btn-return:hover {
+        background: linear-gradient(135deg, #D4A5FF 0%, #A375D9 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(185, 131, 255, 0.3);
+        color: white;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="construction-container">
+      <div class="construction-content">
+        <div class="construction-icon">🚧</div>
+        
+        <h1 class="construction-title">Under Construction</h1>
+        
+        <p class="construction-message">
+          We're working hard to bring you the best Commander deck building experience with advanced analytics and AI-powered recommendations.
+        </p>
+        
+        <p class="construction-note">
+          This feature is currently being developed and will be available soon.
+        </p>
+      </div>
+    </main>
+    
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  </body>
+</html>

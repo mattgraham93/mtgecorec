@@ -113,6 +113,31 @@ class ColorIdentity:
             frozenset(['G', 'U', 'R']): "Temur"
         }
         return guilds.get(frozenset(self.colors))
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialize ColorIdentity to a plain dict for multiprocessing.
+        
+        Returns:
+            Dict with 'colors' key containing list of color strings
+        """
+        return {
+            'colors': list(sorted(self.colors))  # Convert set to sorted list
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ColorIdentity':
+        """
+        Deserialize ColorIdentity from a plain dict.
+        
+        Args:
+            data: Dict with 'colors' key containing list of color strings
+            
+        Returns:
+            ColorIdentity instance
+        """
+        colors = data.get('colors', [])
+        return cls(colors=set(colors))  # Convert list back to set
 
 
 @dataclass 
@@ -189,6 +214,68 @@ class CommanderCard:
             can_be_commander=can_be_commander,
             partner=partner,
             partner_with=partner_with
+        )
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialize CommanderCard to a plain dict for multiprocessing.
+        
+        This allows the card to be passed to worker processes via pickle.
+        All complex objects (ColorIdentity) are serialized to dicts.
+        
+        Returns:
+            Dict containing all CommanderCard fields
+        """
+        return {
+            'name': self.name,
+            'mana_cost': self.mana_cost,
+            'colors': self.colors,  # Already a list
+            'color_identity': self.color_identity.to_dict(),  # Serialize nested object
+            'types': self.types,  # Already a list
+            'subtypes': self.subtypes,  # Already a list
+            'rules_text': self.rules_text,
+            'power': self.power,
+            'toughness': self.toughness,
+            'loyalty': self.loyalty,
+            'is_legendary': self.is_legendary,
+            'can_be_commander': self.can_be_commander,
+            'partner': self.partner,
+            'partner_with': self.partner_with
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CommanderCard':
+        """
+        Deserialize CommanderCard from a plain dict.
+        
+        This reconstructs a CommanderCard from the dict created by to_dict(),
+        allowing it to be passed to worker processes.
+        
+        Args:
+            data: Dict containing all CommanderCard fields
+            
+        Returns:
+            CommanderCard instance
+        """
+        # Deserialize nested ColorIdentity
+        color_identity_data = data.get('color_identity', {'colors': []})
+        color_identity = ColorIdentity.from_dict(color_identity_data)
+        
+        return cls(
+            name=data.get('name', ''),
+            mana_cost=data.get('mana_cost', ''),
+            colors=data.get('colors', []),
+            color_identity=color_identity,
+            types=data.get('types', []),
+            subtypes=data.get('subtypes', []),
+            rules_text=data.get('rules_text', ''),
+            power=data.get('power'),
+            toughness=data.get('toughness'),
+            loyalty=data.get('loyalty'),
+            is_legendary=data.get('is_legendary', True),
+            can_be_commander=data.get('can_be_commander', True),
+            partner=data.get('partner', False),
+            partner_with=data.get('partner_with')
         )
 
 

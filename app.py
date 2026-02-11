@@ -325,7 +325,7 @@ def profile():
 @app.route('/')
 def index():
    print(f'Request for index page received, session: {dict(session)}')
-   return render_template('index.html')
+   return render_template('construction.html')
 
 @app.route('/favicon.ico')
 def favicon():
@@ -347,6 +347,11 @@ def narrative():
 @app.route('/analysis')
 def analysis():
    return send_from_directory(os.path.join(app.root_path, 'static'), 'card_explore.html', mimetype='text/html')
+
+@app.route('/construction')
+def under_construction():
+   """Under construction page - not linked in navigation."""
+   return render_template('construction.html')
 
 # API endpoint to get paginated card data as JSON
 @app.route('/api/cards')
