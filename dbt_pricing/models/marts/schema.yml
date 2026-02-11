@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: pricing_daily
+    description: "Production pricing table (partitioned by date, Delta Lake format)"
+    
+    meta:
+      owner: "data-engineering"
+      priority: "high"
+      refresh_schedule: "daily at 2am UTC"
+      
+    columns:
+      - name: scryfall_id
+        description: "Unique Scryfall card identifier (primary key)"
+        tests:
+          - unique
+          - not_null
+          
+      - name: card_name
+        description: "Card name"
+        tests:
+          - not_null
+          
+      - name: ds
+        description: "Date partition (YYYY-MM-DD format)"
+        tests:
+          - not_null
+          
+      - name: usd
+        description: "USD price (nonfoil)"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "usd IS NOT NULL"
+                
+      - name: usd_foil
+        description: "USD price (foil)"
+        
+      - name: usd_etched
+        description: "USD price (etched)"
+        
+      - name: eur
+        description: "EUR price (nonfoil)"
+        
+      - name: eur_foil
+        description: "EUR price (foil)"
+        
+      - name: tix
+        description: "MTGO tix price"
+        
+      - name: usd_cheapest
+        description: "Cheapest USD price across all finishes"
+        
+      - name: foil_premium_pct
+        description: "Foil premium percentage (foil vs nonfoil)"
+        
+      - name: has_usd_price
+        description: "Boolean flag: Has USD pricing available"
+        
+      - name: has_eur_price
+        description: "Boolean flag: Has EUR pricing available"
+        
+      - name: has_tix_price
+        description: "Boolean flag: Has MTGO pricing available"
+        
+      - name: dbt_updated_at
+        description: "Timestamp of when dbt last processed this row"
+
+  - name: pricing_latest
+    description: "View of latest pricing data (most recent date)"
+    
+    columns:
+      - name: scryfall_id
+        description: "Unique Scryfall card identifier"
+        tests:
+          - unique
+          - not_null
+          
+      - name: latest_date
+        description: "Date of latest pricing data"
+        tests:
+          - not_null

@@ -1,0 +1,58 @@
+version: 2
+
+sources:
+  - name: staging
+    description: "Staging tables loaded from MongoDB"
+    schema: staging
+    
+    tables:
+      - name: card_pricing_daily_staging
+        description: |
+          Raw pricing data synced from MongoDB (pivoted format)
+          
+          Loaded by: scripts/sync_mongo_to_databricks_staging.py
+          Refresh: Manual (run script before dbt run)
+          Format: Already pivoted (1 row per card per day)
+          
+          Columns:
+            - scryfall_id: Unique card identifier
+            - card_name: Card name
+            - ds: Date string (YYYY-MM-DD)
+            - usd, usd_foil, usd_etched: USD prices
+            - eur, eur_foil: EUR prices
+            - tix: MTGO ticket price
+        identifier: card_pricing_daily_staging
+        
+        columns:
+          - name: scryfall_id
+            description: "Unique Scryfall card identifier"
+            tests:
+              - not_null
+              
+          - name: card_name
+            description: "Card name"
+            tests:
+              - not_null
+              
+          - name: ds
+            description: "Date string (YYYY-MM-DD)"
+            tests:
+              - not_null
+              
+          - name: usd
+            description: "USD price (nonfoil)"
+            
+          - name: usd_foil
+            description: "USD price (foil)"
+            
+          - name: usd_etched
+            description: "USD price (etched)"
+            
+          - name: eur
+            description: "EUR price (nonfoil)"
+            
+          - name: eur_foil
+            description: "EUR price (foil)"
+            
+          - name: tix
+            description: "MTGO ticket price"

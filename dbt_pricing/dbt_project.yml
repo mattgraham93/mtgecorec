@@ -1,0 +1,62 @@
+name: 'mtg_pricing'
+version: '1.0.0'
+config-version: 2
+
+# Project info
+profile: 'mtg_pricing'
+
+# Model paths
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Model configurations
+models:
+  mtg_pricing:
+    # Staging models (raw from MongoDB)
+    staging:
+      +materialized: view
+      +schema: staging
+      
+    # Intermediate transformations
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+      
+    # Final marts (partitioned Delta tables)
+    marts:
+      +materialized: incremental
+      +file_format: delta
+      +partition_by: ["ds"]
+      +schema: pricing
+      +incremental_strategy: merge
+      +unique_key: "scryfall_id"
+      +on_schema_change: "fail"
+
+# Documentation
+vars:
+  # MongoDB source
+  mongo_database: 'mtgecorec'
+  mongo_collection_cards: 'cards'
+  mongo_collection_pricing: 'card_pricing_daily'
+  
+  # Date range for backfill
+  backfill_start_date: '2026-01-01'
+  backfill_end_date: '{{ run_started_at.strftime("%Y-%m-%d") }}'
+  
+  # Retention policy
+  pricing_retention_days: 9999  # Keep forever (compressed)
+
+# Seeds configuration
+seeds:
+  mtg_pricing:
+    +schema: reference_data
+    +quote_columns: false
