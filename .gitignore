@@ -134,6 +134,10 @@ auth.json
 scryfall-default-cards.json
 AGENT_HANDOVER.md
 HANDOVER_SUMMARY.md
+
+# Local notebooks and data files (7.3 MB)
+internal_notebooks/
+internal_notebooks/
+
 technical_docs/
 technical_summaries/
-internal_notebooks/
